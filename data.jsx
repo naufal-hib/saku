@@ -1,4 +1,4 @@
-// Saku — mock data + helpers (Indonesian realistic)
+// Saku — formatters, constants, seed data, DataCtx
 
 // ─── Currency formatting ─────────────────────────────────────
 const fmtIDR = (n, opts = {}) => {
@@ -75,7 +75,7 @@ const C = {
   pinkInk: '#7A1F4A',
 };
 
-// ─── Categories ──────────────────────────────────────────────
+// ─── Categories (static, tidak disimpan di Firestore) ────────
 const CATEGORIES = [
   { id: 'makan',    name: 'Makan & Minum',  icon: '🍜', color: C.coral,  soft: C.coralSoft  },
   { id: 'transport',name: 'Transport',       icon: '🛵', color: C.sky,    soft: C.skySoft    },
@@ -94,8 +94,8 @@ const CATEGORIES = [
 
 const catById = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
 
-// ─── Accounts ────────────────────────────────────────────────
-const ACCOUNTS = [
+// ─── Seed data (dipakai saat pertama kali buka app) ──────────
+const SEED_ACCOUNTS = [
   { id: 'bca',     name: 'BCA',          type: 'Bank',     balance: 12450000, color: '#0E5CB6', emoji: '🏦', last4: '4827' },
   { id: 'jenius',  name: 'Jenius',       type: 'Bank',     balance:  4280000, color: '#00B7D4', emoji: '💳', last4: '1192' },
   { id: 'mandiri', name: 'Mandiri',      type: 'Bank',     balance:  2150000, color: '#FFD43B', emoji: '🏛️', last4: '9302' },
@@ -104,8 +104,7 @@ const ACCOUNTS = [
   { id: 'cash',    name: 'Cash',         type: 'Tunai',    balance:   180000, color: '#6B6478', emoji: '💵' },
 ];
 
-// ─── Budgets (envelope, custom period) ───────────────────────
-const BUDGETS = [
+const SEED_BUDGETS = [
   { id: 'b1', cat: 'makan',     limit: 2500000, spent: 1820000, period: 'Bulanan', resetAt: '2026-06-01' },
   { id: 'b2', cat: 'transport', limit:  800000, spent:  340000, period: 'Bulanan', resetAt: '2026-06-01' },
   { id: 'b3', cat: 'belanja',   limit: 1200000, spent: 1050000, period: 'Bulanan', resetAt: '2026-06-01' },
@@ -116,8 +115,7 @@ const BUDGETS = [
   { id: 'b8', cat: 'invest',    limit: 2000000, spent: 2000000, period: 'Bulanan', resetAt: '2026-06-01' },
 ];
 
-// ─── Transactions ────────────────────────────────────────────
-const TX = [
+const SEED_TX = [
   { id: 't01', date: '2026-05-10', time: '08:42', cat: 'makan',     account: 'gopay',  amount: -28000,  note: 'Kopi Tuku — Es Kopi Susu Tetangga', via: 'wa' },
   { id: 't02', date: '2026-05-10', time: '08:15', cat: 'transport', account: 'gopay',  amount: -22000,  note: 'Gojek ke kantor', via: 'wa' },
   { id: 't03', date: '2026-05-09', time: '21:30', cat: 'makan',     account: 'jenius', amount: -85000,  note: 'Dinner — Mie Gacoan', via: 'app' },
@@ -139,8 +137,7 @@ const TX = [
   { id: 't19', date: '2026-04-28', time: '16:00', cat: 'freelance', account: 'jenius', amount: 3500000, note: 'Project landing page', via: 'app' },
 ];
 
-// ─── Debts (Utang = saya pinjam, Piutang = saya pinjamkan) ──
-const DEBTS = [
+const SEED_DEBTS = [
   { id: 'd1', kind: 'piutang', who: 'Bagus',     amount: 850000, note: 'Patungan Bali trip', dueDate: '2026-05-15', createdAt: '2026-04-20', avatar: 'B', color: C.sky },
   { id: 'd2', kind: 'piutang', who: 'Sarah',     amount: 250000, note: 'Talangin makan tim',  dueDate: '2026-05-12', createdAt: '2026-05-05', avatar: 'S', color: C.pink },
   { id: 'd3', kind: 'utang',   who: 'Rama',      amount: 1200000,note: 'Pinjaman bensin mobil', dueDate: '2026-05-25', createdAt: '2026-04-25', avatar: 'R', color: C.amber },
@@ -148,19 +145,17 @@ const DEBTS = [
   { id: 'd5', kind: 'utang',   who: 'Tante Lin', amount: 500000, note: 'Belum bayar arisan', dueDate: '2026-06-01', createdAt: '2026-05-01', avatar: 'TL', color: C.primary },
 ];
 
-// ─── Notifications ───────────────────────────────────────────
-const NOTIFS = [
+const SEED_NOTIFS = [
   { id: 'n1', type: 'budget',  level: 'alert',   title: 'Budget Belanja hampir habis',     body: 'Sudah 87% terpakai. Sisa Rp 150.000 untuk 21 hari.', time: '10 menit lalu', read: false },
   { id: 'n2', type: 'budget',  level: 'over',    title: 'Budget Hiburan terlewat',         body: 'Lewat Rp 80.000 dari batas Rp 500.000.', time: '2 jam lalu', read: false },
   { id: 'n3', type: 'debt',    level: 'warning', title: 'Diana telat bayar',                body: 'Piutang Rp 75.000 sudah lewat tenggat 1 hari.', time: '5 jam lalu', read: false },
   { id: 'n4', type: 'wa',      level: 'info',    title: 'Transaksi via WA tercatat',        body: '"Kopi Tuku 28rb" → Makan & Minum', time: 'Hari ini, 08:42', read: true },
   { id: 'n5', type: 'bill',    level: 'info',    title: 'Tagihan Internet jatuh tempo',     body: 'IndiHome Rp 350.000 — bayar otomatis 15 Mei.', time: 'Kemarin', read: true },
-  { id: 'n6', type: 'achievement', level: 'good', title: 'Streak hemat 5 hari! 🔥',          body: 'Pengeluaran Makan di bawah rata-rata 5 hari berturut-turut.', time: 'Kemarin', read: true },
+  { id: 'n6', type: 'achievement', level: 'good', title: 'Streak hemat 5 hari! 🔥',         body: 'Pengeluaran Makan di bawah rata-rata 5 hari berturut-turut.', time: 'Kemarin', read: true },
   { id: 'n7', type: 'debt',    level: 'info',    title: 'Bagus akan jatuh tempo',           body: 'Piutang Rp 850.000 tenggat dalam 5 hari.', time: '2 hari lalu', read: true },
 ];
 
-// ─── WhatsApp activity log ───────────────────────────────────
-const WA_LOG = [
+const SEED_WA_LOG = [
   { id: 'w1', time: '08:42', input: 'kopi tuku 28rb pake gopay',          parsed: { amount: -28000, cat: 'makan',     account: 'gopay' },  ok: true },
   { id: 'w2', time: '08:15', input: 'gojek 22rb',                          parsed: { amount: -22000, cat: 'transport', account: 'gopay' },  ok: true },
   { id: 'w3', time: 'Kemarin 12:10', input: 'nasi padang 35rb cash',      parsed: { amount: -35000, cat: 'makan',     account: 'cash' },   ok: true },
@@ -168,28 +163,7 @@ const WA_LOG = [
   { id: 'w5', time: '2 hari lalu',   input: 'beli sesuatu 50rb',           parsed: null, ok: false, error: 'Kategori belum jelas — balas dengan kategori-nya.' },
 ];
 
-// ─── Derived totals ──────────────────────────────────────────
-const totalBalance = ACCOUNTS.reduce((s, a) => s + a.balance, 0);
-const monthIncome = TX.filter(t => t.amount > 0 && t.date.startsWith('2026-05')).reduce((s, t) => s + t.amount, 0);
-const monthExpense = TX.filter(t => t.amount < 0 && t.date.startsWith('2026-05')).reduce((s, t) => s + Math.abs(t.amount), 0);
-const monthBudgetLimit = BUDGETS.filter(b => b.period === 'Bulanan').reduce((s, b) => s + b.limit, 0);
-const monthBudgetSpent = BUDGETS.filter(b => b.period === 'Bulanan').reduce((s, b) => s + b.spent, 0);
-
-// 7-day spend sparkline (chronological)
-const SPARK_7D = [180000, 95000, 0, 580000, 145000, 153000, 50000];
-
-// Category share for current month (computed from TX)
-const computeCatShare = () => {
-  const map = {};
-  TX.filter(t => t.amount < 0 && t.date.startsWith('2026-05')).forEach(t => {
-    map[t.cat] = (map[t.cat] || 0) + Math.abs(t.amount);
-  });
-  return Object.entries(map).map(([cat, amt]) => ({ cat, amount: amt }))
-    .sort((a, b) => b.amount - a.amount);
-};
-const CAT_SHARE = computeCatShare();
-
-// Group transactions by date label
+// ─── Utility ─────────────────────────────────────────────────
 const groupTx = (list) => {
   const groups = {};
   list.forEach(t => {
@@ -203,9 +177,12 @@ const groupTx = (list) => {
   return Object.entries(groups);
 };
 
+// ─── React Context (dibaca oleh semua screen) ─────────────────
+const DataCtx = React.createContext(null);
+
 Object.assign(window, {
   fmtIDR, fmtDate, dayDiff,
-  C, CATEGORIES, catById, ACCOUNTS, BUDGETS, TX, DEBTS, NOTIFS, WA_LOG,
-  totalBalance, monthIncome, monthExpense, monthBudgetLimit, monthBudgetSpent,
-  SPARK_7D, CAT_SHARE, groupTx,
+  C, CATEGORIES, catById,
+  SEED_TX, SEED_ACCOUNTS, SEED_BUDGETS, SEED_DEBTS, SEED_NOTIFS, SEED_WA_LOG,
+  groupTx, DataCtx,
 });

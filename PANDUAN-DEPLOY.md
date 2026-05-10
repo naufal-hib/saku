@@ -23,7 +23,41 @@
 
 ## Persiapan Sebelum Deploy
 
-### Langkah 0 — Rename file HTML utama
+### Langkah 0A — Setup Firebase (Penyimpanan Cloud Gratis)
+
+Data transaksi kamu akan disimpan di **Firebase Firestore** — gratis, tersimpan di cloud, tidak hilang walau browser di-clear.
+
+**0A.1 — Buat Firebase Project**
+1. Buka [https://console.firebase.google.com](https://console.firebase.google.com)
+2. Klik **Add project** → beri nama (misal: "saku-budget") → Next → Next → Create project
+3. Setelah project dibuat, klik ikon **`</>`** (Web app) di halaman project
+4. Beri nama app (misal: "saku-web") → klik **Register app**
+5. **Copy seluruh blok `firebaseConfig`** yang muncul
+
+**0A.2 — Isi konfigurasi di `firebase.jsx`**
+
+Buka file `firebase.jsx` dan ganti bagian `FIREBASE_CONFIG`:
+
+```javascript
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSy...",          // ← paste nilai asli dari Firebase
+  authDomain:        "saku-budget.firebaseapp.com",
+  projectId:         "saku-budget",
+  storageBucket:     "saku-budget.appspot.com",
+  messagingSenderId: "123456789",
+  appId:             "1:123456789:web:abc123",
+};
+```
+
+**0A.3 — Aktifkan Firestore**
+1. Di Firebase Console, klik **Build** → **Firestore Database**
+2. Klik **Create database**
+3. Pilih **Start in test mode** → pilih region terdekat (asia-southeast1) → Enable
+4. Selesai! Firestore siap digunakan
+
+---
+
+### Langkah 0B — Rename file HTML utama
 
 GitHub Pages otomatis menserve file bernama `index.html`. Karena file Anda bernama `Budget Tracker.html` (ada spasi), rename dulu menjadi `index.html`.
 
@@ -160,22 +194,17 @@ GitHub Pages akan otomatis update dalam 1–2 menit.
 
 ---
 
-## Hal Penting yang Perlu Diketahui
+## Cara Kerja Penyimpanan Data
 
-### ✅ Yang Akan Berfungsi
+Data kamu tersimpan di **Firebase Firestore** (cloud Google):
 
-- Semua tampilan dan animasi UI
-- Navigasi antar screen
-- Data dummy yang sudah ada di `data.jsx`
-- Tampilan mobile di browser desktop
+- ✅ **Tidak hilang** walau browser di-clear / ganti device
+- ✅ **Gratis** — Firebase Spark plan: 50K reads + 20K writes per hari
+- ✅ **Otomatis sync** — tambah transaksi langsung tersimpan ke cloud
+- ✅ **Akses dari mana saja** — buka dari HP atau laptop, data sama
 
-### ⚠️ Keterbatasan (Data Tidak Tersimpan)
-
-Karena ini pure static (tidak ada server/database), **data transaksi yang diinput tidak akan tersimpan permanen** — saat browser di-refresh, data kembali ke data dummy di `data.jsx`.
-
-Untuk kebutuhan pribadi sederhana, ini bisa diatasi dengan:
-- **LocalStorage** — data tersimpan di browser lokal (gratis, tidak perlu server)
-- Implementasi ini bisa ditambahkan ke `app.jsx` nanti jika dibutuhkan
+**Saat pertama buka app:** data seed (contoh) otomatis ter-load ke Firestore.
+**Saat tambah transaksi:** langsung tersimpan ke cloud, aman.
 
 ### 🔒 Privasi
 

@@ -4,10 +4,11 @@ const { useState: uS1, useEffect: uE1, useRef: uR1, useMemo: uM1 } = React;
 
 // ─── DASHBOARD ───────────────────────────────────────────────
 function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
-  const upcomingDebt = DEBTS.filter(d => d.kind === 'piutang').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
-  const recentTx = TX.slice(0, 4);
-  const budgetPct = (monthBudgetSpent / monthBudgetLimit) * 100;
-  const topCats = CAT_SHARE.slice(0, 3);
+  const { debts, tx, monthBudgetSpent, monthBudgetLimit, catShare, accounts, totalBalance, monthIncome, monthExpense } = React.useContext(DataCtx);
+  const upcomingDebt = debts.filter(d => d.kind === 'piutang').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+  const recentTx = tx.slice(0, 4);
+  const budgetPct = monthBudgetLimit > 0 ? (monthBudgetSpent / monthBudgetLimit) * 100 : 0;
+  const topCats = catShare.slice(0, 3);
   const totalCat = topCats.reduce((s, c) => s + c.amount, 0);
 
   return (
@@ -39,7 +40,6 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
           color: '#fff', position: 'relative', overflow: 'hidden',
           boxShadow: '0 12px 32px rgba(124,92,252,0.32)',
         }}>
-          {/* abstract orbs */}
           <div style={{ position: 'absolute', top: -40, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(197,247,79,0.18)', filter: 'blur(20px)' }}/>
           <div style={{ position: 'absolute', bottom: -50, left: -20, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,107,107,0.20)', filter: 'blur(20px)' }}/>
           <div style={{ position: 'relative' }}>
@@ -52,7 +52,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 36, letterSpacing: '-0.03em', lineHeight: 1.05 }}>
               {fmtIDR(totalBalance, { hide: hideBalance })}
             </div>
-            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7, marginTop: 4 }}>{ACCOUNTS.length} akun · per 10 Mei 2026</div>
+            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7, marginTop: 4 }}>{accounts.length} akun · per {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 16, padding: '10px 12px', backdropFilter: 'blur(8px)' }}>
@@ -104,7 +104,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
         <Card padding={18}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.inkSoft, marginBottom: 2 }}>Budget Mei 2026</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.inkSoft, marginBottom: 2 }}>Budget {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</div>
               <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em' }}>
                 {fmtIDR(monthBudgetSpent, { compact: true })} <span style={{ color: C.inkFaint, fontWeight: 600 }}>/ {fmtIDR(monthBudgetLimit, { compact: true })}</span>
               </div>
@@ -117,7 +117,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
           <ProgressBar value={monthBudgetSpent} max={monthBudgetLimit} color={C.primary} soft={C.primarySoft} height={10}/>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 11.5 }}>
             <span style={{ color: C.inkSoft, fontWeight: 600 }}>{Math.round(budgetPct)}% terpakai</span>
-            <span style={{ color: C.primaryInk, fontWeight: 700 }}>Sisa {fmtIDR(monthBudgetLimit - monthBudgetSpent, { compact: true })} · 21 hari lagi</span>
+            <span style={{ color: C.primaryInk, fontWeight: 700 }}>Sisa {fmtIDR(monthBudgetLimit - monthBudgetSpent, { compact: true })}</span>
           </div>
         </Card>
       </div>
@@ -128,7 +128,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
         <Card padding={16}>
           {topCats.map((cs, i) => {
             const cat = catById(cs.cat);
-            const pct = (cs.amount / totalCat) * 100;
+            const pct = totalCat > 0 ? (cs.amount / totalCat) * 100 : 0;
             return (
               <div key={cs.cat} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
                 <CatAvatar cat={cs.cat} size={38}/>
@@ -142,6 +142,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
               </div>
             );
           })}
+          {topCats.length === 0 && <div style={{ textAlign:'center', color:C.inkSoft, padding:'12px 0', fontSize:13 }}>Belum ada pengeluaran bulan ini.</div>}
         </Card>
       </div>
 
@@ -176,14 +177,14 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
         <Card padding={6}>
           {recentTx.map((t, i) => {
             const cat = catById(t.cat);
-            const acc = ACCOUNTS.find(a => a.id === t.account);
+            const acc = accounts.find(a => a.id === t.account);
             return (
               <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
                 <CatAvatar cat={t.cat} size={40}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>
                   <div style={{ fontSize: 11.5, color: C.inkSoft, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {acc.name} · {t.time}
+                    {acc ? acc.name : t.account} · {t.time}
                     {t.via === 'wa' && (
                       <span style={{ background: '#DCF7E5', color: '#1A7A3D', padding: '1px 6px', borderRadius: 999, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em' }}>WA</span>
                     )}
@@ -195,6 +196,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
               </div>
             );
           })}
+          {recentTx.length === 0 && <div style={{ textAlign:'center', color:C.inkSoft, padding:'16px 0', fontSize:13 }}>Belum ada transaksi.</div>}
         </Card>
       </div>
     </div>
@@ -203,9 +205,10 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
 
 // ─── TRANSAKSI LIST ──────────────────────────────────────────
 function ScreenTransaksi({ openAdd }) {
+  const { tx, accounts } = React.useContext(DataCtx);
   const [filter, setFilter] = uS1('semua');
   const [q, setQ] = uS1('');
-  const filtered = TX.filter(t => {
+  const filtered = tx.filter(t => {
     if (filter === 'masuk' && t.amount < 0) return false;
     if (filter === 'keluar' && t.amount > 0) return false;
     if (q && !t.note.toLowerCase().includes(q.toLowerCase())) return false;
@@ -243,9 +246,9 @@ function ScreenTransaksi({ openAdd }) {
       {/* Filter chips */}
       <div className="saku-scroll" style={{ display: 'flex', gap: 8, padding: '14px 16px 0', overflowX: 'auto' }}>
         {[
-          { id: 'semua', label: 'Semua', count: TX.length },
-          { id: 'keluar', label: 'Pengeluaran', count: TX.filter(t=>t.amount<0).length },
-          { id: 'masuk', label: 'Pemasukan', count: TX.filter(t=>t.amount>0).length },
+          { id: 'semua', label: 'Semua', count: tx.length },
+          { id: 'keluar', label: 'Pengeluaran', count: tx.filter(t=>t.amount<0).length },
+          { id: 'masuk', label: 'Pemasukan', count: tx.filter(t=>t.amount>0).length },
         ].map(f => (
           <Pill key={f.id} active={filter === f.id} onClick={() => setFilter(f.id)}
             color={C.ink} soft="#F2EDE2">
@@ -268,14 +271,14 @@ function ScreenTransaksi({ openAdd }) {
               </div>
               <Card padding={6}>
                 {items.map((t, i) => {
-                  const acc = ACCOUNTS.find(a => a.id === t.account);
+                  const acc = accounts.find(a => a.id === t.account);
                   return (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 10px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
                       <CatAvatar cat={t.cat} size={38}/>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>
                         <div style={{ fontSize: 11.5, color: C.inkSoft, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {catById(t.cat).name} · {acc.name} · {t.time}
+                          {catById(t.cat).name} · {acc ? acc.name : t.account} · {t.time}
                           {t.via === 'wa' && <span style={{ background: '#DCF7E5', color: '#1A7A3D', padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>WA</span>}
                           {t.via === 'auto' && <span style={{ background: C.primarySoft, color: C.primaryInk, padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>AUTO</span>}
                         </div>
@@ -300,14 +303,16 @@ function ScreenTransaksi({ openAdd }) {
 
 // ─── ADD TRANSACTION MODAL ───────────────────────────────────
 function ModalAdd({ open, onClose, onSave }) {
-  const [type, setType] = uS1('keluar'); // keluar | masuk | transfer
+  const { accounts, addTx } = React.useContext(DataCtx);
+  const [type, setType] = uS1('keluar');
   const [amount, setAmount] = uS1(0);
   const [cat, setCat] = uS1('makan');
   const [account, setAccount] = uS1('gopay');
   const [note, setNote] = uS1('');
+  const [saving, setSaving] = uS1(false);
 
   uE1(() => {
-    if (open) { setAmount(0); setNote(''); setCat(type === 'masuk' ? 'gaji' : 'makan'); }
+    if (open) { setAmount(0); setNote(''); setCat(type === 'masuk' ? 'gaji' : 'makan'); setSaving(false); }
   }, [open, type]);
 
   if (!open) return null;
@@ -324,12 +329,20 @@ function ModalAdd({ open, onClose, onSave }) {
 
   const accentColor = type === 'masuk' ? C.limeDeep : type === 'transfer' ? C.sky : C.coral;
 
-  const save = () => {
-    if (!amount) return;
-    onSave({
+  const save = async () => {
+    if (!amount || saving) return;
+    setSaving(true);
+    const newTx = {
+      id: 't' + Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+      time: new Date().toTimeString().slice(0, 5),
       amount: type === 'masuk' ? amount : -amount,
-      cat, account, note: note || catById(cat).name,
-    });
+      cat, account,
+      note: note || catById(cat).name,
+      via: 'app',
+    };
+    await addTx(newTx);
+    onSave(newTx);
   };
 
   return (
@@ -344,7 +357,6 @@ function ModalAdd({ open, onClose, onSave }) {
         animation: 'saku-slide-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
         maxHeight: '92%', overflow: 'auto',
       }}>
-        {/* drag handle */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
           <div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/>
         </div>
@@ -407,7 +419,7 @@ function ModalAdd({ open, onClose, onSave }) {
         {/* account picker */}
         <div style={{ padding: '14px 16px 0' }}>
           <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-            {ACCOUNTS.map(a => (
+            {accounts.map(a => (
               <AccountChip key={a.id} acc={a} selected={account === a.id} onClick={() => setAccount(a.id)}/>
             ))}
           </div>
@@ -440,16 +452,16 @@ function ModalAdd({ open, onClose, onSave }) {
 
         {/* save */}
         <div style={{ padding: '14px 16px 0' }}>
-          <button onClick={save} disabled={!amount} style={{
+          <button onClick={save} disabled={!amount || saving} style={{
             width: '100%', padding: '16px', borderRadius: 18,
-            background: amount ? C.ink : '#D8D2C5', color: '#fff',
+            background: (amount && !saving) ? C.ink : '#D8D2C5', color: '#fff',
             fontWeight: 700, fontSize: 15, fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: amount ? '0 8px 18px rgba(26,22,37,0.20)' : 'none',
+            boxShadow: (amount && !saving) ? '0 8px 18px rgba(26,22,37,0.20)' : 'none',
             transition: 'all 0.15s',
           }}>
             <Icon name="check" size={18} stroke="#fff" sw={2.6}/>
-            Simpan transaksi
+            {saving ? 'Menyimpan...' : 'Simpan transaksi'}
           </button>
         </div>
       </div>
@@ -459,16 +471,16 @@ function ModalAdd({ open, onClose, onSave }) {
 
 // ─── BUDGET ──────────────────────────────────────────────────
 function ScreenBudget({ goto }) {
+  const { budgets, updateBudgetLimit } = React.useContext(DataCtx);
   const [period, setPeriod] = uS1('Bulanan');
   const [editing, setEditing] = uS1(null);
-  const [budgets, setBudgets] = uS1(BUDGETS);
   const filtered = budgets.filter(b => b.period === period);
   const totalLimit = filtered.reduce((s, b) => s + b.limit, 0);
   const totalSpent = filtered.reduce((s, b) => s + b.spent, 0);
   const totalPct = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
 
   const updateLimit = (id, newLimit) => {
-    setBudgets(budgets.map(b => b.id === id ? { ...b, limit: newLimit } : b));
+    updateBudgetLimit(id, newLimit);
   };
 
   return (

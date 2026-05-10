@@ -1,16 +1,17 @@
-// Saku — secondary screens: Akun, Kategori (drag-drop), Utang/Piutang, Notifikasi, WhatsApp, Insights, More menu
+// Saku — secondary screens: Akun, Kategori, Utang/Piutang, Notifikasi, WhatsApp, Insights, More menu
 
 const { useState: uS2, useEffect: uE2, useRef: uR2 } = React;
 
 // ─── MORE MENU ───────────────────────────────────────────────
 function ScreenMore({ goto }) {
+  const { accounts, debts, notifs, totalBalance } = React.useContext(DataCtx);
   const items = [
-    { id: 'accounts', label: 'Akun Keuangan',     sub: `${ACCOUNTS.length} akun · ${fmtIDR(totalBalance, { compact: true })}`, icon: 'wallet', color: C.sky,   soft: C.skySoft },
-    { id: 'cats',     label: 'Kategori',           sub: `${CATEGORIES.length} kategori`,                                       icon: 'tag',    color: C.pink,  soft: C.pinkSoft },
-    { id: 'debt',     label: 'Utang & Piutang',    sub: `${DEBTS.filter(d=>d.kind==='piutang').length} piutang · ${DEBTS.filter(d=>d.kind==='utang').length} utang`, icon: 'shield', color: C.amber, soft: C.amberSoft },
-    { id: 'notif',    label: 'Notifikasi',         sub: `${NOTIFS.filter(n=>!n.read).length} belum dibaca`,                    icon: 'bell',   color: C.coral, soft: C.coralSoft },
-    { id: 'wa',       label: 'WhatsApp Bot',       sub: 'Aktif · +62 812-3456-7890',                                            icon: 'wa',     color: '#1A7A3D', soft: '#DCF7E5' },
-    { id: 'insights', label: 'Laporan & Insights', sub: 'Analisis bulan ini',                                                   icon: 'pie',    color: C.primary, soft: C.primarySoft },
+    { id: 'accounts', label: 'Akun Keuangan',     sub: `${accounts.length} akun · ${fmtIDR(totalBalance, { compact: true })}`, icon: 'wallet', color: C.sky,   soft: C.skySoft },
+    { id: 'cats',     label: 'Kategori',           sub: `${CATEGORIES.length} kategori`,                                         icon: 'tag',    color: C.pink,  soft: C.pinkSoft },
+    { id: 'debt',     label: 'Utang & Piutang',    sub: `${debts.filter(d=>d.kind==='piutang').length} piutang · ${debts.filter(d=>d.kind==='utang').length} utang`, icon: 'shield', color: C.amber, soft: C.amberSoft },
+    { id: 'notif',    label: 'Notifikasi',         sub: `${notifs.filter(n=>!n.read).length} belum dibaca`,                      icon: 'bell',   color: C.coral, soft: C.coralSoft },
+    { id: 'wa',       label: 'WhatsApp Bot',       sub: 'Aktif · +62 812-3456-7890',                                             icon: 'wa',     color: '#1A7A3D', soft: '#DCF7E5' },
+    { id: 'insights', label: 'Laporan & Insights', sub: 'Analisis bulan ini',                                                    icon: 'pie',    color: C.primary, soft: C.primarySoft },
   ];
 
   return (
@@ -68,6 +69,7 @@ function ScreenMore({ goto }) {
 
 // ─── AKUN ────────────────────────────────────────────────────
 function ScreenAccounts({ back }) {
+  const { accounts, totalBalance } = React.useContext(DataCtx);
   return (
     <div style={{ paddingBottom: 110 }}>
       <PageHeader title="Akun Keuangan" onBack={back}
@@ -91,10 +93,10 @@ function ScreenAccounts({ back }) {
 
       {/* accounts grouped */}
       {[
-        { type: 'Bank',     items: ACCOUNTS.filter(a => a.type === 'Bank') },
-        { type: 'E-wallet', items: ACCOUNTS.filter(a => a.type === 'E-wallet') },
-        { type: 'Tunai',    items: ACCOUNTS.filter(a => a.type === 'Tunai') },
-      ].map(group => (
+        { type: 'Bank',     items: accounts.filter(a => a.type === 'Bank') },
+        { type: 'E-wallet', items: accounts.filter(a => a.type === 'E-wallet') },
+        { type: 'Tunai',    items: accounts.filter(a => a.type === 'Tunai') },
+      ].filter(g => g.items.length > 0).map(group => (
         <div key={group.type} style={{ padding: '20px 16px 0' }}>
           <SectionHeading title={group.type}/>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -134,9 +136,11 @@ function ScreenAccounts({ back }) {
 
 // ─── KATEGORI (drag-drop) ────────────────────────────────────
 function ScreenCategories({ back }) {
+  const { tx } = React.useContext(DataCtx);
   const [cats, setCats] = uS2(CATEGORIES);
   const [draggingId, setDraggingId] = uS2(null);
   const [overId, setOverId] = uS2(null);
+  const curMonth = new Date().toISOString().slice(0, 7);
 
   const onDragStart = (id, e) => { setDraggingId(id); e.dataTransfer.effectAllowed = 'move'; };
   const onDragOver = (id, e) => { e.preventDefault(); setOverId(id); };
@@ -190,7 +194,7 @@ function ScreenCategories({ back }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
                 <div style={{ fontSize: 11, color: C.inkSoft, fontWeight: 600 }}>
-                  {TX.filter(t => t.cat === c.id && t.date.startsWith('2026-05')).length} transaksi bulan ini
+                  {tx.filter(t => t.cat === c.id && t.date && t.date.startsWith(curMonth)).length} transaksi bulan ini
                 </div>
               </div>
               <button style={{ width: 30, height: 30, borderRadius: 10, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -206,11 +210,12 @@ function ScreenCategories({ back }) {
 
 // ─── UTANG / PIUTANG ─────────────────────────────────────────
 function ScreenDebt({ back }) {
+  const { debts } = React.useContext(DataCtx);
   const [tab, setTab] = uS2('piutang');
   const [showAdd, setShowAdd] = uS2(false);
-  const items = DEBTS.filter(d => d.kind === tab);
-  const totalP = DEBTS.filter(d => d.kind === 'piutang').reduce((s,d)=>s+d.amount,0);
-  const totalU = DEBTS.filter(d => d.kind === 'utang').reduce((s,d)=>s+d.amount,0);
+  const items = debts.filter(d => d.kind === tab);
+  const totalP = debts.filter(d => d.kind === 'piutang').reduce((s,d)=>s+d.amount,0);
+  const totalU = debts.filter(d => d.kind === 'utang').reduce((s,d)=>s+d.amount,0);
 
   return (
     <div style={{ paddingBottom: 110 }}>
@@ -224,7 +229,7 @@ function ScreenDebt({ back }) {
         <button onClick={() => setTab('piutang')} style={{
           background: tab === 'piutang' ? `linear-gradient(135deg, ${C.lime}, ${C.limeDeep})` : C.limeSoft,
           borderRadius: 22, padding: 16, textAlign: 'left',
-          color: tab === 'piutang' ? C.limeInk : C.limeInk,
+          color: C.limeInk,
           boxShadow: tab === 'piutang' ? '0 12px 24px rgba(155,203,41,0.35)' : 'none',
           transition: 'all 0.2s',
         }}>
@@ -235,7 +240,7 @@ function ScreenDebt({ back }) {
             {fmtIDR(totalP, { compact: true })}
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, marginTop: 1 }}>
-            {DEBTS.filter(d => d.kind === 'piutang').length} orang berhutang
+            {debts.filter(d => d.kind === 'piutang').length} orang berhutang
           </div>
         </button>
         <button onClick={() => setTab('utang')} style={{
@@ -252,7 +257,7 @@ function ScreenDebt({ back }) {
             {fmtIDR(totalU, { compact: true })}
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.75, marginTop: 1 }}>
-            {DEBTS.filter(d => d.kind === 'utang').length} pinjaman aktif
+            {debts.filter(d => d.kind === 'utang').length} pinjaman aktif
           </div>
         </button>
       </div>
@@ -330,9 +335,9 @@ function ScreenDebt({ back }) {
 
 // ─── NOTIFIKASI ──────────────────────────────────────────────
 function ScreenNotif({ back }) {
+  const { notifs, markAllNotifsRead } = React.useContext(DataCtx);
   const [filter, setFilter] = uS2('semua');
-  const [list, setList] = uS2(NOTIFS);
-  const filtered = list.filter(n => filter === 'semua' || (filter === 'unread' && !n.read));
+  const filtered = notifs.filter(n => filter === 'semua' || (filter === 'unread' && !n.read));
 
   const typeMeta = {
     budget:      { icon: 'pie',     color: C.primary, soft: C.primarySoft },
@@ -345,7 +350,7 @@ function ScreenNotif({ back }) {
   return (
     <div style={{ paddingBottom: 110 }}>
       <PageHeader title="Notifikasi" onBack={back}
-        right={<button onClick={() => setList(list.map(n => ({ ...n, read: true })))} style={{ padding: '8px 12px', borderRadius: 999, background: '#fff', color: C.ink, fontSize: 12, fontWeight: 700, boxShadow: '0 1px 0 rgba(26,22,37,0.04)' }}>
+        right={<button onClick={markAllNotifsRead} style={{ padding: '8px 12px', borderRadius: 999, background: '#fff', color: C.ink, fontSize: 12, fontWeight: 700, boxShadow: '0 1px 0 rgba(26,22,37,0.04)' }}>
           Tandai dibaca
         </button>}/>
 
@@ -362,7 +367,6 @@ function ScreenNotif({ back }) {
           return (
             <Card key={n.id} padding={14} style={{
               display: 'flex', gap: 12, alignItems: 'flex-start',
-              background: n.read ? '#fff' : '#fff',
               borderLeft: n.read ? '3px solid transparent' : `3px solid ${n.level === 'over' || n.level === 'alert' ? C.coral : (n.level === 'good' ? C.limeDeep : C.primary)}`,
               paddingLeft: 12,
             }}>
@@ -387,6 +391,7 @@ function ScreenNotif({ back }) {
 
 // ─── WHATSAPP BOT ────────────────────────────────────────────
 function ScreenWA({ back }) {
+  const { waLog, accounts } = React.useContext(DataCtx);
   const [connected, setConnected] = uS2(true);
   const [autoCategorize, setAutoCategorize] = uS2(true);
   const [confirmFirst, setConfirmFirst] = uS2(false);
@@ -435,14 +440,12 @@ function ScreenWA({ back }) {
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeading title="Contoh penggunaan"/>
         <Card padding={14} style={{ background: '#E5DDD5' }}>
-          {/* user bubble */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
             <div style={{ background: '#DCF8C6', padding: '8px 12px', borderRadius: '14px 14px 4px 14px', maxWidth: '78%', fontSize: 13.5, fontWeight: 500, color: C.ink }}>
               kopi tuku 28rb pake gopay
               <div style={{ fontSize: 9.5, color: '#666', marginTop: 2, textAlign: 'right' }}>08:42 ✓✓</div>
             </div>
           </div>
-          {/* bot bubble */}
           <div style={{ display: 'flex', marginBottom: 8 }}>
             <div style={{ background: '#fff', padding: '10px 12px', borderRadius: '14px 14px 14px 4px', maxWidth: '82%', fontSize: 13, color: C.ink, boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)' }}>
               <div style={{ fontWeight: 700, marginBottom: 4 }}>✅ Tercatat</div>
@@ -494,7 +497,7 @@ function ScreenWA({ back }) {
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeading title="Aktivitas terakhir"/>
         <Card padding={6}>
-          {WA_LOG.map((w, i) => (
+          {waLog.map((w, i) => (
             <div key={w.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 12px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
               <span style={{
                 width: 30, height: 30, borderRadius: 10, flexShrink: 0,
@@ -508,7 +511,7 @@ function ScreenWA({ back }) {
                 <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: C.ink, fontWeight: 500 }}>"{w.input}"</div>
                 <div style={{ fontSize: 11.5, color: w.ok ? C.inkSoft : C.coralDeep, fontWeight: 600, marginTop: 2 }}>
                   {w.ok && w.parsed
-                    ? `→ ${catById(w.parsed.cat).name} · ${ACCOUNTS.find(a=>a.id===w.parsed.account)?.name} · ${fmtIDR(w.parsed.amount, { compact: true })}`
+                    ? `→ ${catById(w.parsed.cat).name} · ${(accounts.find(a=>a.id===w.parsed.account)||{name:w.parsed.account}).name} · ${fmtIDR(w.parsed.amount, { compact: true })}`
                     : `⚠ ${w.error}`}
                 </div>
                 <div style={{ fontSize: 10.5, color: C.inkFaint, fontWeight: 700, marginTop: 2 }}>{w.time}</div>
@@ -523,15 +526,16 @@ function ScreenWA({ back }) {
 
 // ─── INSIGHTS ────────────────────────────────────────────────
 function ScreenInsights({ back }) {
-  const total = CAT_SHARE.reduce((s,c)=>s+c.amount,0);
-  const cats5 = CAT_SHARE.slice(0, 5);
+  const { catShare, monthIncome, monthExpense, tx } = React.useContext(DataCtx);
+  const curMonth = new Date().toISOString().slice(0, 7);
+  const total = catShare.reduce((s,c)=>s+c.amount,0);
+  const cats5 = catShare.slice(0, 5);
 
-  // build pie segments
   let acc = 0;
   const segments = cats5.map(c => {
-    const start = acc / total;
+    const start = acc / (total || 1);
     acc += c.amount;
-    const end = acc / total;
+    const end = acc / (total || 1);
     return { ...c, start, end };
   });
 
@@ -543,9 +547,8 @@ function ScreenInsights({ back }) {
     { m: 'Apr', income: 14500000, expense: 6500000 },
     { m: 'Mei', income: monthIncome, expense: monthExpense },
   ];
-  const maxBar = Math.max(...monthBars.map(b => Math.max(b.income, b.expense)));
+  const maxBar = Math.max(...monthBars.map(b => Math.max(b.income, b.expense)), 1);
 
-  // pie path helper
   const arc = (start, end, r = 60, cx = 80, cy = 80) => {
     const a1 = start * Math.PI * 2 - Math.PI / 2;
     const a2 = end * Math.PI * 2 - Math.PI / 2;
@@ -559,7 +562,7 @@ function ScreenInsights({ back }) {
     <div style={{ paddingBottom: 110 }}>
       <PageHeader title="Insights" onBack={back}
         right={<button style={{ padding: '8px 12px', borderRadius: 999, background: '#fff', color: C.ink, fontSize: 12, fontWeight: 700, boxShadow: '0 1px 0 rgba(26,22,37,0.04)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          Mei 2026 <Icon name="chevron-d" size={13} sw={2.2}/>
+          {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} <Icon name="chevron-d" size={13} sw={2.2}/>
         </button>}/>
 
       {/* Summary */}
@@ -569,14 +572,18 @@ function ScreenInsights({ back }) {
           <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, color: C.limeInk, letterSpacing: '-0.02em', marginTop: 2 }}>
             {fmtIDR(monthIncome, { compact: true })}
           </div>
-          <div style={{ fontSize: 11, color: C.limeInk, fontWeight: 700, opacity: 0.7 }}>2 sumber</div>
+          <div style={{ fontSize: 11, color: C.limeInk, fontWeight: 700, opacity: 0.7 }}>
+            {tx.filter(t=>t.amount>0&&t.date&&t.date.startsWith(curMonth)).length} sumber
+          </div>
         </Card>
         <Card padding={14} style={{ background: C.coralSoft }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.coralInk, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Pengeluaran</div>
           <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, color: C.coralInk, letterSpacing: '-0.02em', marginTop: 2 }}>
             {fmtIDR(monthExpense, { compact: true })}
           </div>
-          <div style={{ fontSize: 11, color: C.coralInk, fontWeight: 700, opacity: 0.7 }}>{TX.filter(t=>t.amount<0&&t.date.startsWith('2026-05')).length} transaksi</div>
+          <div style={{ fontSize: 11, color: C.coralInk, fontWeight: 700, opacity: 0.7 }}>
+            {tx.filter(t=>t.amount<0&&t.date&&t.date.startsWith(curMonth)).length} transaksi
+          </div>
         </Card>
       </div>
 
@@ -584,33 +591,37 @@ function ScreenInsights({ back }) {
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeading title="Distribusi pengeluaran"/>
         <Card padding={18}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ position: 'relative', width: 160, height: 160, flexShrink: 0 }}>
-              <svg width="160" height="160" viewBox="0 0 160 160">
-                {segments.map((s) => (
-                  <path key={s.cat} d={arc(s.start, s.end)} fill={catById(s.cat).color} stroke="#fff" strokeWidth="3"/>
-                ))}
-                <circle cx="80" cy="80" r="36" fill="#fff"/>
-              </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 10, color: C.inkSoft, fontWeight: 700, letterSpacing: '0.04em' }}>TOTAL</div>
-                <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 14, color: C.ink, letterSpacing: '-0.02em' }}>{fmtIDR(total, { compact: true })}</div>
+          {total > 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ position: 'relative', width: 160, height: 160, flexShrink: 0 }}>
+                <svg width="160" height="160" viewBox="0 0 160 160">
+                  {segments.map((s) => (
+                    <path key={s.cat} d={arc(s.start, s.end)} fill={catById(s.cat).color} stroke="#fff" strokeWidth="3"/>
+                  ))}
+                  <circle cx="80" cy="80" r="36" fill="#fff"/>
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontSize: 10, color: C.inkSoft, fontWeight: 700, letterSpacing: '0.04em' }}>TOTAL</div>
+                  <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 14, color: C.ink, letterSpacing: '-0.02em' }}>{fmtIDR(total, { compact: true })}</div>
+                </div>
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {cats5.map(c => {
+                  const cat = catById(c.cat);
+                  const pct = (c.amount / total) * 100;
+                  return (
+                    <div key={c.cat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 4, background: cat.color, flexShrink: 0 }}/>
+                      <div style={{ flex: 1, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</div>
+                      <div style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Bricolage Grotesque', color: C.ink }}>{Math.round(pct)}%</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {cats5.map(c => {
-                const cat = catById(c.cat);
-                const pct = (c.amount / total) * 100;
-                return (
-                  <div key={c.cat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 4, background: cat.color, flexShrink: 0 }}/>
-                    <div style={{ flex: 1, fontSize: 11.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</div>
-                    <div style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Bricolage Grotesque', color: C.ink }}>{Math.round(pct)}%</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: C.inkSoft, padding: '20px 0' }}>Belum ada data pengeluaran bulan ini.</div>
+          )}
         </Card>
       </div>
 
