@@ -17,7 +17,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
   return (
     <div style={{ paddingBottom: 110 }}>
       {/* Header */}
-      <div style={{ padding: '54px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>{greeting} 👋</div>
           <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em' }}>Halo, {userName}</div>
@@ -223,7 +223,7 @@ function ScreenTransaksi({ openAdd }) {
 
   return (
     <div style={{ paddingBottom: 110 }}>
-      <div style={{ padding: '54px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ margin: 0, fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Transaksi</h1>
         <button onClick={openAdd} style={{
           padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff',
@@ -388,7 +388,7 @@ function ModalAdd({ open, onClose, onSave }) {
 
   return (
     <div style={{
-      position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)',
+      position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)',
       zIndex: 90, display: 'flex', alignItems: 'flex-end',
       animation: 'saku-fade-in 0.2s ease',
     }} onClick={onClose}>
@@ -556,7 +556,7 @@ function ScreenBudget({ goto }) {
 
   return (
     <div style={{ paddingBottom: 110, position: 'relative' }}>
-      <div style={{ padding: '54px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ margin: 0, fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Budget</h1>
         <button onClick={() => setShowAddBudget(true)} style={{
           padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff',
@@ -685,7 +685,7 @@ function ScreenBudget({ goto }) {
 
       {/* Add Budget Modal */}
       {showAddBudget && (
-        <div onClick={() => setShowAddBudget(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+        <div onClick={() => setShowAddBudget(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '80%', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em', marginBottom: 16 }}>Tambah Budget</div>

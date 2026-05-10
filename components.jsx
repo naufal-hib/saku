@@ -181,8 +181,9 @@ const BottomNav = ({ active, onChange, onAdd }) => {
   ];
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0,
-      paddingBottom: 28, paddingTop: 6, paddingLeft: 12, paddingRight: 12,
+      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+      width: '100%', maxWidth: 480,
+      paddingBottom: 20, paddingTop: 6, paddingLeft: 12, paddingRight: 12,
       background: 'linear-gradient(180deg, rgba(244,241,234,0) 0%, rgba(244,241,234,0.95) 32%, rgba(244,241,234,1) 100%)',
       zIndex: 40, pointerEvents: 'none',
     }}>
@@ -231,7 +232,7 @@ const BottomNav = ({ active, onChange, onAdd }) => {
 // ─── Page header (back/title) ────────────────────────────────
 const PageHeader = ({ title, onBack, right }) => (
   <div style={{
-    padding: '52px 20px 14px',
+    padding: '16px 20px 14px',
     display: 'flex', alignItems: 'center', gap: 12,
   }}>
     {onBack && (
@@ -261,7 +262,7 @@ const Toast = ({ msg, onClose }) => {
   if (!msg) return null;
   return (
     <div style={{
-      position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+      position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
       background: C.ink, color: '#fff', padding: '10px 16px', borderRadius: 999,
       fontWeight: 600, fontSize: 13, zIndex: 100,
       boxShadow: '0 8px 24px rgba(26,22,37,0.30)',

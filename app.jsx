@@ -190,23 +190,23 @@ function App() {
 
   // ─── Loading screen ─────────────────────────────────────────
   if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', flexDirection:'column', gap:14 }}>
-      <div style={{ width:56, height:56, borderRadius:18, background:`linear-gradient(135deg,${C.lime},${C.primary})`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 10px 28px rgba(124,92,252,0.45)' }}>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', flexDirection:'column', gap:14, background:C.bg }}>
+      <div style={{ width:56, height:56, borderRadius:18, background:`linear-gradient(135deg,${C.lime},${C.primary})`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 10px 28px rgba(124,92,252,0.35)' }}>
         <span style={{ fontFamily:'Bricolage Grotesque', fontWeight:800, fontSize:28, color:'#fff' }}>S</span>
       </div>
-      <div style={{ fontSize:14, color:'rgba(255,255,255,0.7)', fontWeight:600 }}>Memuat data...</div>
+      <div style={{ fontSize:14, color:C.inkSoft, fontWeight:600 }}>Memuat data...</div>
     </div>
   );
 
   // ─── Firebase belum dikonfigurasi ───────────────────────────
   if (dbError) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'24px 20px' }}>
-      <div style={{ maxWidth:400, background:'rgba(255,255,255,0.08)', borderRadius:24, padding:28, color:'#fff', backdropFilter:'blur(12px)' }}>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'24px 20px', background:C.bg }}>
+      <div style={{ maxWidth:400, background:'#fff', borderRadius:24, padding:28, color:C.ink, boxShadow:'0 4px 24px rgba(26,22,37,0.08)' }}>
         <div style={{ fontFamily:'Bricolage Grotesque', fontWeight:700, fontSize:22, marginBottom:8 }}>Setup Firebase dulu</div>
-        <div style={{ fontSize:13, lineHeight:1.7, color:'rgba(255,255,255,0.8)', marginBottom:16 }}>
-          Buka file <code style={{background:'rgba(255,255,255,0.15)',padding:'2px 6px',borderRadius:6}}>firebase.jsx</code> dan isi <code style={{background:'rgba(255,255,255,0.15)',padding:'2px 6px',borderRadius:6}}>FIREBASE_CONFIG</code> dengan konfigurasi dari Firebase Console.
+        <div style={{ fontSize:13, lineHeight:1.7, color:C.inkSoft, marginBottom:16 }}>
+          Buka file <code style={{background:C.bg,padding:'2px 6px',borderRadius:6}}>firebase.jsx</code> dan isi <code style={{background:C.bg,padding:'2px 6px',borderRadius:6}}>FIREBASE_CONFIG</code> dengan konfigurasi dari Firebase Console.
         </div>
-        <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', fontWeight:600 }}>
+        <div style={{ fontSize:12, color:C.inkFaint, fontWeight:600 }}>
           Panduan lengkap ada di PANDUAN-DEPLOY.md
         </div>
       </div>
@@ -219,7 +219,7 @@ function App() {
   else if (route === 'tx')       screen = <ScreenTransaksi openAdd={() => setShowAdd(true)}/>;
   else if (route === 'budget')   screen = <ScreenBudget goto={goto}/>;
   else if (route === 'more')     screen = <ScreenMore goto={goto}/>;
-  else if (route === 'accounts') screen = <ScreenAccounts back={back}/>;
+  else if (route === 'accounts') screen = <ScreenAccounts back={back} goto={goto} openAdd={() => setShowAdd(true)}/>;
   else if (route === 'cats')     screen = <ScreenCategories back={back}/>;
   else if (route === 'debt')     screen = <ScreenDebt back={back}/>;
   else if (route === 'notif')    screen = <ScreenNotif back={() => setRoute('home')}/>;
@@ -228,50 +228,19 @@ function App() {
 
   return (
     <DataCtx.Provider value={ctxValue}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        {/* Brand mark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 12,
-            background: `linear-gradient(135deg, ${C.lime}, ${C.primary})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(124,92,252,0.4)',
-          }}>
-            <span style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: 18, color: '#fff' }}>S</span>
-          </div>
-          <div>
-            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18, color: '#fff', letterSpacing: '-0.02em' }}>Saku</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Personal budget tracker</div>
-          </div>
+      <div style={{
+        maxWidth: 480, margin: '0 auto', minHeight: '100vh',
+        background: C.bg, position: 'relative',
+        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+        color: C.ink,
+        boxShadow: '0 0 0 1px rgba(26,22,37,0.05), 0 0 80px rgba(26,22,37,0.06)',
+      }}>
+        <div style={{ paddingBottom: 100 }}>
+          {screen}
         </div>
-
-        <IOSDevice width={393} height={830}>
-          <div style={{
-            position: 'relative', height: '100%', overflow: 'hidden',
-            background: C.bg, fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
-            color: C.ink,
-          }}>
-            <div className="saku-scroll" style={{
-              height: '100%', overflowY: 'auto', overflowX: 'hidden',
-              position: 'relative',
-            }}>
-              {screen}
-            </div>
-            <BottomNav active={activeTab} onChange={(id) => setRoute(id)} onAdd={() => setShowAdd(true)}/>
-            <ModalAdd open={showAdd} onClose={() => setShowAdd(false)} onSave={onSaveTx}/>
-            <Toast msg={toast} onClose={() => setToast(null)}/>
-          </div>
-        </IOSDevice>
-
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 16px', borderRadius: 999,
-          background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)',
-          color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600,
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: 999, background: C.lime, animation: 'saku-pulse-dot 1.6s infinite' }}/>
-          Saku · Budget Tracker Pribadi
-        </div>
+        <BottomNav active={activeTab} onChange={(id) => setRoute(id)} onAdd={() => setShowAdd(true)}/>
+        <ModalAdd open={showAdd} onClose={() => setShowAdd(false)} onSave={onSaveTx}/>
+        <Toast msg={toast} onClose={() => setToast(null)}/>
       </div>
     </DataCtx.Provider>
   );

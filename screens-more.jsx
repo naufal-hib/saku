@@ -19,7 +19,7 @@ function ScreenMore({ goto }) {
 
   return (
     <div style={{ paddingBottom: 110, position: 'relative' }}>
-      <div style={{ padding: '54px 20px 20px' }}>
+      <div style={{ padding: '20px 20px 20px' }}>
         <h1 style={{ margin: 0, fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Menu</h1>
         <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600, marginTop: 2 }}>Semua pengaturan dan fitur lainnya</div>
       </div>
@@ -69,7 +69,7 @@ function ScreenMore({ goto }) {
 
       {/* Edit name modal */}
       {showEditName && (
-        <div onClick={() => setShowEditName(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+        <div onClick={() => setShowEditName(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Edit Nama</div>
@@ -83,8 +83,12 @@ function ScreenMore({ goto }) {
 }
 
 // ─── AKUN ────────────────────────────────────────────────────
-function ScreenAccounts({ back }) {
-  const { accounts, totalBalance, addAccount } = React.useContext(DataCtx);
+function ScreenAccounts({ back, goto, openAdd }) {
+  const { accounts, totalBalance, addAccount, tx } = React.useContext(DataCtx);
+  const curMonth = new Date().toISOString().slice(0, 7);
+  const lastMonth = (() => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,7); })();
+  const thisMonthNet = tx.filter(t => t.date && t.date.startsWith(curMonth) && t.via !== 'transfer').reduce((s,t) => s + t.amount, 0);
+  const lastMonthNet = tx.filter(t => t.date && t.date.startsWith(lastMonth) && t.via !== 'transfer').reduce((s,t) => s + t.amount, 0);
   const [showAddAcc, setShowAddAcc] = uS2(false);
   const [newAccName, setNewAccName] = uS2('');
   const [newAccType, setNewAccType] = uS2('Bank');
@@ -105,10 +109,12 @@ function ScreenAccounts({ back }) {
           <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 32, letterSpacing: '-0.03em', color: C.ink, marginTop: 2 }}>
             {fmtIDR(totalBalance)}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.skyInk, fontWeight: 700, marginTop: 4 }}>
-            <Icon name="trend-up" size={14} stroke={C.skyInk} sw={2.4}/>
-            +Rp 1,2jt vs bulan lalu
-          </div>
+          {thisMonthNet !== 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: thisMonthNet > 0 ? C.skyInk : C.coralDeep, fontWeight: 700, marginTop: 4 }}>
+              <Icon name={thisMonthNet > 0 ? 'trend-up' : 'arrow-down'} size={14} stroke={thisMonthNet > 0 ? C.skyInk : C.coralDeep} sw={2.4}/>
+              {fmtIDR(Math.abs(thisMonthNet), { compact: true })} {thisMonthNet > 0 ? 'masuk' : 'keluar'} bulan ini
+            </div>
+          )}
         </Card>
       </div>
 
@@ -139,11 +145,11 @@ function ScreenAccounts({ back }) {
                   </button>
                 </div>
                 <div style={{ display: 'flex', borderTop: `1px solid ${C.lineSoft}`, fontSize: 12, fontWeight: 700 }}>
-                  <button style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                    <Icon name="transfer" size={14} sw={2.2}/> Transfer
+                  <button onClick={() => openAdd && openAdd()} style={{ flex: 1, padding: '10px 0', color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    <Icon name="transfer" size={14} stroke={C.primary} sw={2.2}/> Transfer
                   </button>
                   <div style={{ width: 1, background: C.lineSoft }}/>
-                  <button style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <button onClick={() => goto && goto('tx')} style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     <Icon name="list" size={14} sw={2}/> Mutasi
                   </button>
                 </div>
@@ -155,7 +161,7 @@ function ScreenAccounts({ back }) {
 
       {/* Add Account Modal */}
       {showAddAcc && (
-        <div onClick={() => setShowAddAcc(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+        <div onClick={() => setShowAddAcc(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '85%', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Tambah Akun</div>
@@ -380,7 +386,7 @@ function ScreenDebt({ back }) {
       </div>
 
       {showAdd && (
-        <div onClick={() => setShowAdd(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+        <div onClick={() => setShowAdd(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
           <div onClick={e=>e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 26px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em', marginBottom: 14 }}>Catat {tab}</div>
@@ -612,7 +618,7 @@ function ScreenWA({ back }) {
 
 // ─── INSIGHTS ────────────────────────────────────────────────
 function ScreenInsights({ back }) {
-  const { catShare, monthIncome, monthExpense, tx } = React.useContext(DataCtx);
+  const { catShare, monthIncome, monthExpense, tx, accounts } = React.useContext(DataCtx);
   const curMonth = new Date().toISOString().slice(0, 7);
   const total = catShare.reduce((s,c)=>s+c.amount,0);
   const cats5 = catShare.slice(0, 5);
@@ -625,15 +631,56 @@ function ScreenInsights({ back }) {
     return { ...c, start, end };
   });
 
-  const monthBars = [
-    { m: 'Des', income: 12000000, expense: 6800000 },
-    { m: 'Jan', income: 14500000, expense: 8200000 },
-    { m: 'Feb', income: 14500000, expense: 7400000 },
-    { m: 'Mar', income: 14500000, expense: 7900000 },
-    { m: 'Apr', income: 14500000, expense: 6500000 },
-    { m: 'Mei', income: monthIncome, expense: monthExpense },
-  ];
+  const mNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const last6yms = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - (5 - i));
+    return d.toISOString().slice(0, 7);
+  });
+  const monthBars = last6yms.map(ym => {
+    const mTxs = tx.filter(t => t.date && t.date.startsWith(ym) && t.via !== 'transfer');
+    return {
+      m: mNames[parseInt(ym.slice(5,7)) - 1],
+      income:  mTxs.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0),
+      expense: mTxs.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0),
+      isCur: ym === curMonth,
+    };
+  });
   const maxBar = Math.max(...monthBars.map(b => Math.max(b.income, b.expense)), 1);
+
+  const lastMonthYm = last6yms[4];
+  const lastMonthExpense = tx.filter(t => t.date && t.date.startsWith(lastMonthYm) && t.amount < 0 && t.via !== 'transfer').reduce((s,t) => s + Math.abs(t.amount), 0);
+  const expChangePct = lastMonthExpense > 0 ? Math.round((monthExpense - lastMonthExpense) / lastMonthExpense * 100) : 0;
+  const savingRate = monthIncome > 0 ? Math.round((monthIncome - monthExpense) / monthIncome * 100) : 0;
+  const subTotal = tx.filter(t => t.date && t.date.startsWith(curMonth) && t.cat === 'sub' && t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+
+  const insights = [];
+  if (catShare.length > 0) {
+    const top = catShare[0]; const ic = catById(top.cat);
+    insights.push({ icon: 'flame', color: ic.color, soft: ic.soft,
+      title: `${ic.icon} ${ic.name} pengeluaran terbesar`,
+      body: `${fmtIDR(top.amount, {compact:true})} — ${Math.round(top.amount/(total||1)*100)}% dari total pengeluaran bulan ini.` });
+  }
+  if (lastMonthExpense > 0 && expChangePct !== 0) {
+    const up = expChangePct > 0;
+    insights.push({ icon: up ? 'trend-up' : 'sparkle', color: up ? C.coralDeep : C.limeDeep, soft: up ? C.coralSoft : C.limeSoft,
+      title: `Pengeluaran ${up?'naik':'turun'} ${Math.abs(expChangePct)}% vs bulan lalu`,
+      body: up ? 'Perhatikan pola pengeluaranmu agar tetap dalam budget.' : 'Penghematan yang bagus! Pertahankan!' });
+  }
+  if (monthIncome > 0) {
+    const good = savingRate >= 20;
+    insights.push({ icon: 'piggy', color: good ? C.limeDeep : C.amber, soft: good ? C.limeSoft : C.amberSoft,
+      title: `Saving rate ${savingRate}% bulan ini`,
+      body: good ? 'Target tabungan tercapai! Terus pertahankan.' : 'Coba tingkatkan ke minimal 20% dari penghasilan.' });
+  }
+  if (subTotal > 0) {
+    insights.push({ icon: 'sparkle', color: C.primary, soft: C.primarySoft,
+      title: `Subscription ${fmtIDR(subTotal, {compact:true})} bulan ini`,
+      body: 'Cek apakah semua langganan masih aktif digunakan setiap bulannya.' });
+  }
+  if (insights.length === 0) {
+    insights.push({ icon: 'sparkle', color: C.primary, soft: C.primarySoft,
+      title: 'Tambah transaksi untuk melihat insight', body: 'Catat pengeluaran dan pemasukan untuk analisis otomatis.' });
+  }
 
   const arc = (start, end, r = 60, cx = 80, cy = 80) => {
     const a1 = start * Math.PI * 2 - Math.PI / 2;
@@ -659,7 +706,7 @@ function ScreenInsights({ back }) {
             {fmtIDR(monthIncome, { compact: true })}
           </div>
           <div style={{ fontSize: 11, color: C.limeInk, fontWeight: 700, opacity: 0.7 }}>
-            {tx.filter(t=>t.amount>0&&t.date&&t.date.startsWith(curMonth)).length} sumber
+            {tx.filter(t=>t.amount>0&&t.via!=='transfer'&&t.date&&t.date.startsWith(curMonth)).length} sumber
           </div>
         </Card>
         <Card padding={14} style={{ background: C.coralSoft }}>
@@ -668,7 +715,7 @@ function ScreenInsights({ back }) {
             {fmtIDR(monthExpense, { compact: true })}
           </div>
           <div style={{ fontSize: 11, color: C.coralInk, fontWeight: 700, opacity: 0.7 }}>
-            {tx.filter(t=>t.amount<0&&t.date&&t.date.startsWith(curMonth)).length} transaksi
+            {tx.filter(t=>t.amount<0&&t.via!=='transfer'&&t.date&&t.date.startsWith(curMonth)).length} transaksi
           </div>
         </Card>
       </div>
@@ -716,28 +763,27 @@ function ScreenInsights({ back }) {
         <SectionHeading title="Tren 6 bulan"/>
         <Card padding={18}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 140, padding: '0 4px' }}>
-            {monthBars.map((b, i) => {
-              const isCur = i === monthBars.length - 1;
-              return (
-                <div key={b.m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 110, width: '100%', justifyContent: 'center' }}>
-                    <div style={{
-                      width: '40%', minWidth: 8,
-                      height: `${(b.income / maxBar) * 100}%`,
-                      background: isCur ? C.lime : C.limeSoft,
-                      borderRadius: '6px 6px 0 0',
-                    }}/>
-                    <div style={{
-                      width: '40%', minWidth: 8,
-                      height: `${(b.expense / maxBar) * 100}%`,
-                      background: isCur ? C.coral : C.coralSoft,
-                      borderRadius: '6px 6px 0 0',
-                    }}/>
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: isCur ? C.ink : C.inkSoft }}>{b.m}</div>
+            {monthBars.map((b) => (
+              <div key={b.m + b.isCur} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 110, width: '100%', justifyContent: 'center' }}>
+                  <div style={{
+                    width: '40%', minWidth: 8,
+                    height: `${Math.max((b.income / maxBar) * 100, b.income > 0 ? 4 : 0)}%`,
+                    background: b.isCur ? C.lime : C.limeSoft,
+                    borderRadius: '6px 6px 0 0',
+                    transition: 'height 0.4s ease',
+                  }}/>
+                  <div style={{
+                    width: '40%', minWidth: 8,
+                    height: `${Math.max((b.expense / maxBar) * 100, b.expense > 0 ? 4 : 0)}%`,
+                    background: b.isCur ? C.coral : C.coralSoft,
+                    borderRadius: '6px 6px 0 0',
+                    transition: 'height 0.4s ease',
+                  }}/>
                 </div>
-              );
-            })}
+                <div style={{ fontSize: 11, fontWeight: 700, color: b.isCur ? C.ink : C.inkSoft }}>{b.m}</div>
+              </div>
+            ))}
           </div>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12, fontSize: 11, fontWeight: 700, color: C.inkSoft }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 3, background: C.lime }}/> Masuk</span>
@@ -746,15 +792,11 @@ function ScreenInsights({ back }) {
         </Card>
       </div>
 
-      {/* Smart cards */}
+      {/* Smart cards — real data */}
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeading title="Insight pintar"/>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[
-            { icon: 'flame', color: C.coralDeep, soft: C.coralSoft, title: 'Belanja naik 23% vs April', body: 'Kebanyakan dari Uniqlo & Indomaret. Pertimbangkan set budget mingguan.' },
-            { icon: 'sparkle', color: C.primary, soft: C.primarySoft, title: 'Auto-debit Spotify, Netflix, IndiHome', body: 'Total subs bulanan: Rp 573rb. Cek apa masih dipakai.' },
-            { icon: 'piggy', color: C.limeDeep, soft: C.limeSoft, title: 'Saving rate kamu 36%', body: 'Lebih tinggi dari rata-rata. Pertahankan! 🎉' },
-          ].map((s, i) => (
+          {insights.map((s, i) => (
             <Card key={i} padding={14} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <span style={{ width: 36, height: 36, borderRadius: 12, background: s.soft, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={s.icon} size={19} sw={2}/>
