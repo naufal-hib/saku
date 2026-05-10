@@ -538,12 +538,20 @@ function ModalAdd({ open, onClose, onSave }) {
 
 // ─── BUDGET ──────────────────────────────────────────────────
 function ScreenBudget({ goto }) {
-  const { budgets, updateBudgetLimit, addBudget } = React.useContext(DataCtx);
+  const { budgets, updateBudgetLimit, addBudget, customCats } = React.useContext(DataCtx);
   const [period, setPeriod] = uS1('Bulanan');
   const [editing, setEditing] = uS1(null);
   const [showAddBudget, setShowAddBudget] = uS1(false);
   const [newBudgetCat, setNewBudgetCat] = uS1('makan');
   const [newBudgetLimit, setNewBudgetLimit] = uS1('');
+  const [newBudgetPeriod, setNewBudgetPeriod] = uS1('Bulanan');
+  const [customStart, setCustomStart] = uS1('');
+  const [customEnd, setCustomEnd] = uS1('');
+
+  const budgetCategories = [
+    ...CATEGORIES.filter(c => !['gaji','freelance','transfer','lainnya'].includes(c.id)),
+    ...(customCats || []),
+  ];
 
   const filtered = budgets.filter(b => b.period === period);
   const totalLimit = filtered.reduce((s, b) => s + b.limit, 0);
@@ -590,7 +598,7 @@ function ScreenBudget({ goto }) {
             <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>terpakai</div>
           </Donut>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sisa {period.toLowerCase()}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Sisa {period === 'Custom' ? 'periode' : period.toLowerCase()}</div>
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em', marginTop: 2 }}>
               {fmtIDR(Math.max(0, totalLimit - totalSpent), { compact: true })}
             </div>
@@ -692,7 +700,7 @@ function ScreenBudget({ goto }) {
 
             <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Kategori</div>
             <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 16, paddingBottom: 4 }}>
-              {CATEGORIES.filter(c => !['gaji','freelance','transfer','lainnya'].includes(c.id)).map(c => (
+              {budgetCategories.map(c => (
                 <button key={c.id} onClick={() => setNewBudgetCat(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px 8px 8px', borderRadius: 999, flexShrink: 0, background: newBudgetCat === c.id ? c.color : '#fff', color: newBudgetCat === c.id ? '#fff' : C.ink, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: 16 }}>{c.icon}</span>{c.name}
                 </button>
@@ -700,11 +708,24 @@ function ScreenBudget({ goto }) {
             </div>
 
             <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Periode</div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              {['Harian','Mingguan','Bulanan'].map(p => (
-                <button key={p} onClick={() => setPeriod(p)} style={{ padding: '8px 14px', borderRadius: 999, background: period === p ? C.ink : '#fff', color: period === p ? '#fff' : C.ink, fontWeight: 700, fontSize: 13 }}>{p}</button>
+            <div style={{ display: 'flex', gap: 8, marginBottom: newBudgetPeriod === 'Custom' ? 10 : 16, flexWrap: 'wrap' }}>
+              {['Harian','Mingguan','Bulanan','Custom'].map(p => (
+                <button key={p} onClick={() => setNewBudgetPeriod(p)} style={{ padding: '8px 14px', borderRadius: 999, background: newBudgetPeriod === p ? C.ink : '#fff', color: newBudgetPeriod === p ? '#fff' : C.ink, fontWeight: 700, fontSize: 13 }}>{p}</button>
               ))}
             </div>
+
+            {newBudgetPeriod === 'Custom' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkSoft, marginBottom: 4 }}>Mulai</div>
+                  <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ width: '100%', padding: '12px 12px', borderRadius: 12, border: 'none', background: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}/>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkSoft, marginBottom: 4 }}>Sampai</div>
+                  <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ width: '100%', padding: '12px 12px', borderRadius: 12, border: 'none', background: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}/>
+                </div>
+              </div>
+            )}
 
             <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Batas (Rp)</div>
             <input type="number" value={newBudgetLimit} onChange={e => setNewBudgetLimit(e.target.value)} placeholder="Contoh: 500000" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Bricolage Grotesque, sans-serif', marginBottom: 16, outline: 'none', boxSizing: 'border-box' }}/>
@@ -712,14 +733,16 @@ function ScreenBudget({ goto }) {
             <button onClick={async () => {
               const lim = parseInt(newBudgetLimit, 10);
               if (!lim || lim <= 0) return;
+              if (newBudgetPeriod === 'Custom' && !customEnd) return;
               const now = new Date();
               let resetAt = '';
-              if (period === 'Bulanan') resetAt = new Date(now.getFullYear(), now.getMonth()+1, 1).toISOString().slice(0,10);
-              else if (period === 'Mingguan') { const d = new Date(now); d.setDate(d.getDate() + (7 - d.getDay() + 1) % 7 || 7); resetAt = d.toISOString().slice(0,10); }
+              if (newBudgetPeriod === 'Bulanan') resetAt = new Date(now.getFullYear(), now.getMonth()+1, 1).toISOString().slice(0,10);
+              else if (newBudgetPeriod === 'Mingguan') { const d = new Date(now); d.setDate(d.getDate() + (7 - d.getDay() + 1) % 7 || 7); resetAt = d.toISOString().slice(0,10); }
+              else if (newBudgetPeriod === 'Custom') resetAt = customEnd;
               else { const d = new Date(now); d.setDate(d.getDate()+1); resetAt = d.toISOString().slice(0,10); }
-              await addBudget({ id: 'b' + Date.now(), cat: newBudgetCat, limit: lim, spent: 0, period, resetAt });
-              setNewBudgetLimit(''); setShowAddBudget(false);
-            }} disabled={!newBudgetLimit} style={{ width: '100%', padding: 16, borderRadius: 16, background: newBudgetLimit ? C.ink : '#D8D2C5', color: '#fff', fontWeight: 700, fontSize: 15 }}>
+              await addBudget({ id: 'b' + Date.now(), cat: newBudgetCat, limit: lim, spent: 0, period: newBudgetPeriod, resetAt });
+              setNewBudgetLimit(''); setCustomStart(''); setCustomEnd(''); setShowAddBudget(false);
+            }} disabled={!newBudgetLimit || (newBudgetPeriod === 'Custom' && !customEnd)} style={{ width: '100%', padding: 16, borderRadius: 16, background: (newBudgetLimit && (newBudgetPeriod !== 'Custom' || customEnd)) ? C.ink : '#D8D2C5', color: '#fff', fontWeight: 700, fontSize: 15 }}>
               Simpan Budget
             </button>
           </div>

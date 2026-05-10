@@ -183,7 +183,7 @@ const BottomNav = ({ active, onChange, onAdd }) => {
     <div style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
       width: '100%', maxWidth: 480,
-      paddingBottom: 20, paddingTop: 6, paddingLeft: 12, paddingRight: 12,
+      paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))', paddingTop: 6, paddingLeft: 12, paddingRight: 12,
       background: 'linear-gradient(180deg, rgba(244,241,234,0) 0%, rgba(244,241,234,0.95) 32%, rgba(244,241,234,1) 100%)',
       zIndex: 40, pointerEvents: 'none',
     }}>

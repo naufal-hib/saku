@@ -84,7 +84,7 @@ function ScreenMore({ goto }) {
 
 // ─── AKUN ────────────────────────────────────────────────────
 function ScreenAccounts({ back, goto, openAdd }) {
-  const { accounts, totalBalance, addAccount, updateAccount, tx } = React.useContext(DataCtx);
+  const { accounts, totalBalance, addAccount, updateAccount, deleteAccount, tx } = React.useContext(DataCtx);
   const curMonth = new Date().toISOString().slice(0, 7);
   const lastMonth = (() => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,7); })();
   const thisMonthNet = tx.filter(t => t.date && t.date.startsWith(curMonth) && t.via !== 'transfer').reduce((s,t) => s + t.amount, 0);
@@ -96,6 +96,9 @@ function ScreenAccounts({ back, goto, openAdd }) {
   const [newAccBalance, setNewAccBalance] = uS2('');
   const [editingAccId, setEditingAccId] = uS2(null);
   const [editAccForm, setEditAccForm] = uS2({ name:'', emoji:'🏦', type:'Bank', balance:'' });
+  const [showDeleteConfirm, setShowDeleteConfirm] = uS2(false);
+
+  uE2(() => { setShowDeleteConfirm(false); }, [editingAccId]);
 
   const openEditAcc = (a) => {
     setEditingAccId(a.id);
@@ -234,6 +237,21 @@ function ScreenAccounts({ back, goto, openAdd }) {
               await updateAccount(editingAccId, { name: editAccForm.name.trim(), emoji: editAccForm.emoji, type: editAccForm.type, balance: parseInt(editAccForm.balance, 10) || 0 });
               setEditingAccId(null);
             }} style={{ width: '100%', padding: 14, borderRadius: 14, background: C.ink, color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan Perubahan</button>
+
+            {!showDeleteConfirm ? (
+              <button onClick={() => setShowDeleteConfirm(true)} style={{ width: '100%', padding: 14, borderRadius: 14, background: C.coralSoft, color: C.coralDeep, fontWeight: 700, fontSize: 14, marginTop: 8 }}>
+                Hapus Akun
+              </button>
+            ) : (
+              <div style={{ marginTop: 12, padding: 16, borderRadius: 14, background: C.coralSoft }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.coralDeep, marginBottom: 6, textAlign: 'center' }}>Hapus akun ini?</div>
+                <div style={{ fontSize: 12, color: C.coralInk, fontWeight: 600, marginBottom: 12, textAlign: 'center', lineHeight: 1.5 }}>Riwayat transaksi tetap ada, tapi akun ini tidak akan muncul lagi.</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: 12, borderRadius: 12, background: '#fff', fontWeight: 700, fontSize: 13, color: C.ink }}>Batal</button>
+                  <button onClick={async () => { await deleteAccount(editingAccId); setEditingAccId(null); }} style={{ flex: 1, padding: 12, borderRadius: 12, background: C.coralDeep, color: '#fff', fontWeight: 700, fontSize: 13 }}>Ya, Hapus</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

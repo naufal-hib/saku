@@ -182,6 +182,12 @@ function App() {
     await DB.patch({ accounts: next });
   };
 
+  const deleteAccount = async (id) => {
+    const next = accounts.filter(a => a.id !== id);
+    setAccounts(next);
+    await DB.patch({ accounts: next });
+  };
+
   const addCategory = async (cat) => {
     const next = [...customCats, cat];
     setCustomCats(next);
@@ -206,7 +212,7 @@ function App() {
     totalBalance, monthIncome, monthExpense,
     monthBudgetLimit, monthBudgetSpent, catShare,
     addTx, updateBudgetLimit, markAllNotifsRead,
-    addTransfer, deleteTx, addBudget, addDebt, markDebtDone, addAccount,
+    addTransfer, deleteTx, addBudget, addDebt, markDebtDone, addAccount, deleteAccount,
     updateUserName, userName,
     catMods, customCats, addCategory, updateCategory, updateAccount,
   };

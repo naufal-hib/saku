@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <title>Saku — Budget Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1A1625">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Saku">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -25,7 +33,45 @@
   @keyframes saku-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
   @keyframes saku-pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   @keyframes saku-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  :root { --sab: env(safe-area-inset-bottom, 0px); --sat: env(safe-area-inset-top, 0px); }
 </style>
+<script>
+// Generate iOS apple-touch-icon via Canvas (PNG required for iOS home screen)
+(function() {
+  try {
+    var c = document.createElement('canvas');
+    c.width = c.height = 180;
+    var ctx = c.getContext('2d');
+    // Background rounded rect
+    ctx.beginPath();
+    var r = 40, w = 180, h = 180;
+    ctx.moveTo(r, 0); ctx.lineTo(w-r, 0); ctx.arcTo(w, 0, w, r, r);
+    ctx.lineTo(w, h-r); ctx.arcTo(w, h, w-r, h, r);
+    ctx.lineTo(r, h); ctx.arcTo(0, h, 0, h-r, r);
+    ctx.lineTo(0, r); ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    var bg = ctx.createLinearGradient(0, 0, 180, 180);
+    bg.addColorStop(0, '#1A1625'); bg.addColorStop(1, '#2A1F4A');
+    ctx.fillStyle = bg; ctx.fill();
+    // S stroke
+    var g = ctx.createLinearGradient(0, 0, 180, 180);
+    g.addColorStop(0, '#C5F74F'); g.addColorStop(1, '#7C5CFC');
+    ctx.strokeStyle = g; ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    var s = 180/512;
+    ctx.beginPath();
+    ctx.moveTo(330*s, 198*s);
+    ctx.bezierCurveTo(330*s,161*s, 302*s,133*s, 256*s,133*s);
+    ctx.bezierCurveTo(210*s,133*s, 182*s,161*s, 182*s,198*s);
+    ctx.bezierCurveTo(182*s,235*s, 212*s,252*s, 256*s,264*s);
+    ctx.bezierCurveTo(300*s,276*s, 330*s,293*s, 330*s,330*s);
+    ctx.bezierCurveTo(330*s,367*s, 300*s,391*s, 256*s,391*s);
+    ctx.bezierCurveTo(212*s,391*s, 182*s,367*s, 182*s,330*s);
+    ctx.stroke();
+    var lnk = document.querySelector('link[rel="apple-touch-icon"]');
+    if (lnk) lnk.href = c.toDataURL('image/png');
+  } catch(e) {}
+})();
+</script>
 </head>
 <body>
 <div id="root"></div>
