@@ -4,20 +4,23 @@ const { useState: uS1, useEffect: uE1, useRef: uR1, useMemo: uM1 } = React;
 
 // ─── DASHBOARD ───────────────────────────────────────────────
 function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
-  const { debts, tx, monthBudgetSpent, monthBudgetLimit, catShare, accounts, totalBalance, monthIncome, monthExpense } = React.useContext(DataCtx);
+  const { debts, tx, monthBudgetSpent, monthBudgetLimit, catShare, accounts, totalBalance, monthIncome, monthExpense, userName } = React.useContext(DataCtx);
   const upcomingDebt = debts.filter(d => d.kind === 'piutang').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
   const recentTx = tx.slice(0, 4);
   const budgetPct = monthBudgetLimit > 0 ? (monthBudgetSpent / monthBudgetLimit) * 100 : 0;
   const topCats = catShare.slice(0, 3);
   const totalCat = topCats.reduce((s, c) => s + c.amount, 0);
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 19 ? 'Selamat sore' : 'Selamat malam';
+
   return (
     <div style={{ paddingBottom: 110 }}>
       {/* Header */}
       <div style={{ padding: '54px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>Selamat pagi 👋</div>
-          <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em' }}>Halo, Adit</div>
+          <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>{greeting} 👋</div>
+          <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em' }}>Halo, {userName}</div>
         </div>
         <button onClick={() => goto('notif')} style={{
           position: 'relative', width: 42, height: 42, borderRadius: 14, background: '#fff',
@@ -164,7 +167,7 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 16, color: C.amberInk }}>{fmtIDR(upcomingDebt.amount, { compact: true })}</div>
-                <button style={{ marginTop: 4, padding: '4px 10px', borderRadius: 999, background: C.ink, color: '#fff', fontSize: 11, fontWeight: 700 }}>Tagih</button>
+                <button onClick={() => { window.open(`https://wa.me/?text=${encodeURIComponent(`Hei ${upcomingDebt.who}, mengingatkan piutang ${fmtIDR(upcomingDebt.amount)} (${upcomingDebt.note}). Terima kasih 🙏`)}`); }} style={{ marginTop: 4, padding: '4px 10px', borderRadius: 999, background: C.ink, color: '#fff', fontSize: 11, fontWeight: 700 }}>Tagih</button>
               </div>
             </div>
           </Card>
@@ -205,9 +208,11 @@ function ScreenDashboard({ goto, openAdd, hideBalance, setHideBalance }) {
 
 // ─── TRANSAKSI LIST ──────────────────────────────────────────
 function ScreenTransaksi({ openAdd }) {
-  const { tx, accounts } = React.useContext(DataCtx);
+  const { tx, accounts, deleteTx } = React.useContext(DataCtx);
   const [filter, setFilter] = uS1('semua');
   const [q, setQ] = uS1('');
+  const [deletingId, setDeletingId] = uS1(null);
+
   const filtered = tx.filter(t => {
     if (filter === 'masuk' && t.amount < 0) return false;
     if (filter === 'keluar' && t.amount > 0) return false;
@@ -273,19 +278,37 @@ function ScreenTransaksi({ openAdd }) {
                 {items.map((t, i) => {
                   const acc = accounts.find(a => a.id === t.account);
                   return (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 10px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
-                      <CatAvatar cat={t.cat} size={38}/>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>
-                        <div style={{ fontSize: 11.5, color: C.inkSoft, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {catById(t.cat).name} · {acc ? acc.name : t.account} · {t.time}
-                          {t.via === 'wa' && <span style={{ background: '#DCF7E5', color: '#1A7A3D', padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>WA</span>}
-                          {t.via === 'auto' && <span style={{ background: C.primarySoft, color: C.primaryInk, padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>AUTO</span>}
+                    <div key={t.id}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 10px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
+                        <CatAvatar cat={t.cat} size={38}/>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>
+                          <div style={{ fontSize: 11.5, color: C.inkSoft, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {catById(t.cat).name} · {acc ? acc.name : t.account} · {t.time}
+                            {t.via === 'wa' && <span style={{ background: '#DCF7E5', color: '#1A7A3D', padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>WA</span>}
+                            {t.via === 'auto' && <span style={{ background: C.primarySoft, color: C.primaryInk, padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>AUTO</span>}
+                            {t.via === 'transfer' && <span style={{ background: C.skySoft, color: C.skyInk, padding: '1px 5px', borderRadius: 999, fontSize: 9, fontWeight: 800 }}>TRANSFER</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 14, color: t.amount > 0 ? C.limeDeep : C.ink }}>
+                            {fmtIDR(t.amount, { sign: true, compact: Math.abs(t.amount) >= 1000000 })}
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); setDeletingId(deletingId === t.id ? null : t.id); }} style={{
+                            width: 28, height: 28, borderRadius: 8, background: deletingId === t.id ? C.coralSoft : C.bg,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                          }}>
+                            <Icon name="trash" size={14} stroke={deletingId === t.id ? C.coralDeep : C.inkSoft} sw={2}/>
+                          </button>
                         </div>
                       </div>
-                      <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 14, color: t.amount > 0 ? C.limeDeep : C.ink }}>
-                        {fmtIDR(t.amount, { sign: true, compact: Math.abs(t.amount) >= 1000000 })}
-                      </div>
+                      {deletingId === t.id && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px 10px', animation: 'saku-fade-in 0.15s' }}>
+                          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: C.coralDeep }}>Hapus transaksi ini?</span>
+                          <button onClick={() => setDeletingId(null)} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: C.bg, color: C.ink }}>Batal</button>
+                          <button onClick={async () => { await deleteTx(t.id); setDeletingId(null); }} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: C.coral, color: '#fff' }}>Hapus</button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -303,16 +326,27 @@ function ScreenTransaksi({ openAdd }) {
 
 // ─── ADD TRANSACTION MODAL ───────────────────────────────────
 function ModalAdd({ open, onClose, onSave }) {
-  const { accounts, addTx } = React.useContext(DataCtx);
+  const { accounts, addTx, addTransfer } = React.useContext(DataCtx);
   const [type, setType] = uS1('keluar');
   const [amount, setAmount] = uS1(0);
   const [cat, setCat] = uS1('makan');
   const [account, setAccount] = uS1('gopay');
+  const [toAccount, setToAccount] = uS1('');
   const [note, setNote] = uS1('');
   const [saving, setSaving] = uS1(false);
 
   uE1(() => {
-    if (open) { setAmount(0); setNote(''); setCat(type === 'masuk' ? 'gaji' : 'makan'); setSaving(false); }
+    if (open) {
+      setAmount(0);
+      setNote('');
+      setCat(type === 'masuk' ? 'gaji' : 'makan');
+      setSaving(false);
+      // Initialize toAccount to first account different from account
+      if (accounts.length > 1) {
+        const other = accounts.find(a => a.id !== account);
+        if (other) setToAccount(other.id);
+      }
+    }
   }, [open, type]);
 
   if (!open) return null;
@@ -325,11 +359,18 @@ function ModalAdd({ open, onClose, onSave }) {
 
   const filteredCats = type === 'masuk'
     ? CATEGORIES.filter(c => ['gaji', 'freelance', 'invest', 'lainnya'].includes(c.id))
-    : CATEGORIES.filter(c => !['gaji', 'freelance'].includes(c.id));
+    : CATEGORIES.filter(c => !['gaji', 'freelance', 'transfer'].includes(c.id));
 
   const accentColor = type === 'masuk' ? C.limeDeep : type === 'transfer' ? C.sky : C.coral;
 
   const save = async () => {
+    if (type === 'transfer') {
+      if (!amount || account === toAccount || saving) return;
+      setSaving(true);
+      await addTransfer(account, toAccount, amount, note);
+      onSave({ via: 'transfer', amount, cat: 'transfer' });
+      return;
+    }
     if (!amount || saving) return;
     setSaving(true);
     const newTx = {
@@ -392,7 +433,31 @@ function ModalAdd({ open, onClose, onSave }) {
           </div>
         </div>
 
-        {/* category chips */}
+        {/* Transfer: two-row account pickers */}
+        {type === 'transfer' && (
+          <div style={{ padding: '14px 16px 0' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dari akun</div>
+            <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 }}>
+              {accounts.map(a => (
+                <AccountChip key={a.id} acc={a} selected={account === a.id} onClick={() => {
+                  setAccount(a.id);
+                  if (toAccount === a.id) {
+                    const other = accounts.find(x => x.id !== a.id);
+                    if (other) setToAccount(other.id);
+                  }
+                }}/>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ke akun</div>
+            <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+              {accounts.filter(a => a.id !== account).map(a => (
+                <AccountChip key={a.id} acc={a} selected={toAccount === a.id} onClick={() => setToAccount(a.id)}/>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* category chips — only for non-transfer */}
         {type !== 'transfer' && (
           <div style={{ padding: '14px 16px 0' }}>
             <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
@@ -416,14 +481,16 @@ function ModalAdd({ open, onClose, onSave }) {
           </div>
         )}
 
-        {/* account picker */}
-        <div style={{ padding: '14px 16px 0' }}>
-          <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-            {accounts.map(a => (
-              <AccountChip key={a.id} acc={a} selected={account === a.id} onClick={() => setAccount(a.id)}/>
-            ))}
+        {/* account picker — only for non-transfer */}
+        {type !== 'transfer' && (
+          <div style={{ padding: '14px 16px 0' }}>
+            <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+              {accounts.map(a => (
+                <AccountChip key={a.id} acc={a} selected={account === a.id} onClick={() => setAccount(a.id)}/>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* note */}
         <div style={{ padding: '14px 16px 0' }}>
@@ -452,16 +519,16 @@ function ModalAdd({ open, onClose, onSave }) {
 
         {/* save */}
         <div style={{ padding: '14px 16px 0' }}>
-          <button onClick={save} disabled={!amount || saving} style={{
+          <button onClick={save} disabled={!amount || saving || (type === 'transfer' && account === toAccount)} style={{
             width: '100%', padding: '16px', borderRadius: 18,
-            background: (amount && !saving) ? C.ink : '#D8D2C5', color: '#fff',
+            background: (amount && !saving && !(type === 'transfer' && account === toAccount)) ? C.ink : '#D8D2C5', color: '#fff',
             fontWeight: 700, fontSize: 15, fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             boxShadow: (amount && !saving) ? '0 8px 18px rgba(26,22,37,0.20)' : 'none',
             transition: 'all 0.15s',
           }}>
             <Icon name="check" size={18} stroke="#fff" sw={2.6}/>
-            {saving ? 'Menyimpan...' : 'Simpan transaksi'}
+            {saving ? 'Menyimpan...' : type === 'transfer' ? 'Transfer sekarang' : 'Simpan transaksi'}
           </button>
         </div>
       </div>
@@ -471,9 +538,13 @@ function ModalAdd({ open, onClose, onSave }) {
 
 // ─── BUDGET ──────────────────────────────────────────────────
 function ScreenBudget({ goto }) {
-  const { budgets, updateBudgetLimit } = React.useContext(DataCtx);
+  const { budgets, updateBudgetLimit, addBudget } = React.useContext(DataCtx);
   const [period, setPeriod] = uS1('Bulanan');
   const [editing, setEditing] = uS1(null);
+  const [showAddBudget, setShowAddBudget] = uS1(false);
+  const [newBudgetCat, setNewBudgetCat] = uS1('makan');
+  const [newBudgetLimit, setNewBudgetLimit] = uS1('');
+
   const filtered = budgets.filter(b => b.period === period);
   const totalLimit = filtered.reduce((s, b) => s + b.limit, 0);
   const totalSpent = filtered.reduce((s, b) => s + b.spent, 0);
@@ -484,10 +555,10 @@ function ScreenBudget({ goto }) {
   };
 
   return (
-    <div style={{ paddingBottom: 110 }}>
+    <div style={{ paddingBottom: 110, position: 'relative' }}>
       <div style={{ padding: '54px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ margin: 0, fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Budget</h1>
-        <button style={{
+        <button onClick={() => setShowAddBudget(true)} style={{
           padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff',
           fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
         }}>
@@ -588,6 +659,16 @@ function ScreenBudget({ goto }) {
                         </button>
                       ))}
                     </div>
+                    <input
+                      type="number"
+                      placeholder="Atau ketik nominal..."
+                      onClick={e => e.stopPropagation()}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (v > 0) updateLimit(b.id, v);
+                      }}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${C.line}`, background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', outline: 'none', marginTop: 8, boxSizing: 'border-box' }}
+                    />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                       <button onClick={(e) => { e.stopPropagation(); setEditing(null); }}
                         style={{ flex: 1, padding: '10px', borderRadius: 12, background: '#fff', fontWeight: 700, fontSize: 13 }}>
@@ -601,6 +682,49 @@ function ScreenBudget({ goto }) {
           })}
         </div>
       </div>
+
+      {/* Add Budget Modal */}
+      {showAddBudget && (
+        <div onClick={() => setShowAddBudget(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '80%', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em', marginBottom: 16 }}>Tambah Budget</div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Kategori</div>
+            <div className="saku-scroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 16, paddingBottom: 4 }}>
+              {CATEGORIES.filter(c => !['gaji','freelance','transfer','lainnya'].includes(c.id)).map(c => (
+                <button key={c.id} onClick={() => setNewBudgetCat(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px 8px 8px', borderRadius: 999, flexShrink: 0, background: newBudgetCat === c.id ? c.color : '#fff', color: newBudgetCat === c.id ? '#fff' : C.ink, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 16 }}>{c.icon}</span>{c.name}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Periode</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {['Harian','Mingguan','Bulanan'].map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{ padding: '8px 14px', borderRadius: 999, background: period === p ? C.ink : '#fff', color: period === p ? '#fff' : C.ink, fontWeight: 700, fontSize: 13 }}>{p}</button>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Batas (Rp)</div>
+            <input type="number" value={newBudgetLimit} onChange={e => setNewBudgetLimit(e.target.value)} placeholder="Contoh: 500000" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'Bricolage Grotesque, sans-serif', marginBottom: 16, outline: 'none', boxSizing: 'border-box' }}/>
+
+            <button onClick={async () => {
+              const lim = parseInt(newBudgetLimit, 10);
+              if (!lim || lim <= 0) return;
+              const now = new Date();
+              let resetAt = '';
+              if (period === 'Bulanan') resetAt = new Date(now.getFullYear(), now.getMonth()+1, 1).toISOString().slice(0,10);
+              else if (period === 'Mingguan') { const d = new Date(now); d.setDate(d.getDate() + (7 - d.getDay() + 1) % 7 || 7); resetAt = d.toISOString().slice(0,10); }
+              else { const d = new Date(now); d.setDate(d.getDate()+1); resetAt = d.toISOString().slice(0,10); }
+              await addBudget({ id: 'b' + Date.now(), cat: newBudgetCat, limit: lim, spent: 0, period, resetAt });
+              setNewBudgetLimit(''); setShowAddBudget(false);
+            }} disabled={!newBudgetLimit} style={{ width: '100%', padding: 16, borderRadius: 16, background: newBudgetLimit ? C.ink : '#D8D2C5', color: '#fff', fontWeight: 700, fontSize: 15 }}>
+              Simpan Budget
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

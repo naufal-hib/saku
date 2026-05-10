@@ -89,8 +89,12 @@ const CATEGORIES = [
   { id: 'invest',   name: 'Investasi',       icon: '📈', color: C.limeDeep,soft: C.limeSoft  },
   { id: 'gaji',     name: 'Gaji',            icon: '💼', color: C.limeDeep,soft: C.limeSoft  },
   { id: 'freelance',name: 'Freelance',       icon: '💎', color: '#22C55E',soft: '#DCFCE7'    },
+  { id: 'transfer', name: 'Transfer',        icon: '🔄', color: C.sky,    soft: C.skySoft    },
   { id: 'lainnya',  name: 'Lainnya',         icon: '✨', color: C.inkSoft,soft: '#EEEAE0'    },
 ];
+
+const ACCOUNT_TYPES = ['Bank', 'E-wallet', 'Tunai', 'Investasi'];
+const ACCOUNT_EMOJIS = ['🏦', '💳', '🏛️', '🟢', '🟣', '💵', '💰', '📱', '🏧', '💎', '🔷', '🎯'];
 
 const catById = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
 
@@ -182,7 +186,7 @@ const DataCtx = React.createContext(null);
 
 Object.assign(window, {
   fmtIDR, fmtDate, dayDiff,
-  C, CATEGORIES, catById,
+  C, CATEGORIES, ACCOUNT_TYPES, ACCOUNT_EMOJIS, catById,
   SEED_TX, SEED_ACCOUNTS, SEED_BUDGETS, SEED_DEBTS, SEED_NOTIFS, SEED_WA_LOG,
   groupTx, DataCtx,
 });

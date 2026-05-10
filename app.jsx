@@ -13,6 +13,7 @@ function App() {
   const [debts, setDebts] = uSA([]);
   const [notifs, setNotifs] = uSA([]);
   const [waLog, setWaLog] = uSA([]);
+  const [userName, setUserName] = uSA('Pengguna');
 
   // ─── UI state ───────────────────────────────────────────────
   const [route, setRoute] = uSA('home');
@@ -31,15 +32,18 @@ function App() {
         setDebts(data.debts || []);
         setNotifs(data.notifs || []);
         setWaLog(data.waLog || []);
+        setUserName(data.userName || 'Pengguna');
       } else {
         // Pertama kali pakai — isi dengan seed data
         const seed = {
           tx: SEED_TX, accounts: SEED_ACCOUNTS, budgets: SEED_BUDGETS,
           debts: SEED_DEBTS, notifs: SEED_NOTIFS, waLog: SEED_WA_LOG,
+          userName: 'Pengguna',
         };
         DB.save(seed);
         setTx(SEED_TX); setAccounts(SEED_ACCOUNTS); setBudgets(SEED_BUDGETS);
         setDebts(SEED_DEBTS); setNotifs(SEED_NOTIFS); setWaLog(SEED_WA_LOG);
+        setUserName('Pengguna');
       }
       setLoading(false);
     }).catch(() => { setLoading(false); setDbError(true); });
@@ -49,13 +53,13 @@ function App() {
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
   const curMonth = new Date().toISOString().slice(0, 7);
   const monthTx = tx.filter(t => t.date && t.date.startsWith(curMonth));
-  const monthIncome = monthTx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const monthExpense = monthTx.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const monthIncome = monthTx.filter(t => t.amount > 0 && t.via !== 'transfer').reduce((s, t) => s + t.amount, 0);
+  const monthExpense = monthTx.filter(t => t.amount < 0 && t.via !== 'transfer').reduce((s, t) => s + Math.abs(t.amount), 0);
   const monthBudgetLimit = budgets.filter(b => b.period === 'Bulanan').reduce((s, b) => s + b.limit, 0);
   const monthBudgetSpent = budgets.filter(b => b.period === 'Bulanan').reduce((s, b) => s + b.spent, 0);
   const catShare = (() => {
     const map = {};
-    monthTx.filter(t => t.amount < 0).forEach(t => {
+    monthTx.filter(t => t.amount < 0 && t.via !== 'transfer').forEach(t => {
       map[t.cat] = (map[t.cat] || 0) + Math.abs(t.amount);
     });
     return Object.entries(map).map(([cat, amount]) => ({ cat, amount })).sort((a, b) => b.amount - a.amount);
@@ -70,7 +74,7 @@ function App() {
     setTx(nextTx);
     setAccounts(nextAccounts);
     const patch = { tx: nextTx, accounts: nextAccounts };
-    if (newTx.amount < 0) {
+    if (newTx.amount < 0 && newTx.via !== 'transfer') {
       const nextBudgets = budgets.map(b =>
         b.cat === newTx.cat ? { ...b, spent: b.spent + Math.abs(newTx.amount) } : b
       );
@@ -78,6 +82,72 @@ function App() {
       patch.budgets = nextBudgets;
     }
     await DB.patch(patch);
+  };
+
+  const addTransfer = async (fromId, toId, amount, note) => {
+    if (!amount || fromId === toId) return;
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const time = now.toTimeString().slice(0, 5);
+    const base = Date.now();
+    const txOut = { id: 't' + base,     date, time, amount: -amount, cat: 'transfer', account: fromId, note: note || 'Transfer', via: 'transfer' };
+    const txIn  = { id: 't' + (base+1), date, time, amount:  amount, cat: 'transfer', account: toId,   note: note || 'Transfer', via: 'transfer' };
+    const nextTx = [txOut, txIn, ...tx];
+    const nextAccounts = accounts.map(a => {
+      if (a.id === fromId) return { ...a, balance: a.balance - amount };
+      if (a.id === toId)   return { ...a, balance: a.balance + amount };
+      return a;
+    });
+    setTx(nextTx); setAccounts(nextAccounts);
+    await DB.patch({ tx: nextTx, accounts: nextAccounts });
+  };
+
+  const deleteTx = async (id) => {
+    const removed = tx.find(t => t.id === id);
+    if (!removed) return;
+    const nextTx = tx.filter(t => t.id !== id);
+    const nextAccounts = accounts.map(a =>
+      a.id === removed.account ? { ...a, balance: a.balance - removed.amount } : a
+    );
+    let patch = { tx: nextTx, accounts: nextAccounts };
+    if (removed.amount < 0 && removed.via !== 'transfer') {
+      const nextBudgets = budgets.map(b =>
+        b.cat === removed.cat ? { ...b, spent: Math.max(0, b.spent - Math.abs(removed.amount)) } : b
+      );
+      setBudgets(nextBudgets);
+      patch.budgets = nextBudgets;
+    }
+    setTx(nextTx); setAccounts(nextAccounts);
+    await DB.patch(patch);
+  };
+
+  const addBudget = async (budget) => {
+    const next = [...budgets, budget];
+    setBudgets(next);
+    await DB.patch({ budgets: next });
+  };
+
+  const addDebt = async (debt) => {
+    const next = [debt, ...debts];
+    setDebts(next);
+    await DB.patch({ debts: next });
+  };
+
+  const markDebtDone = async (id) => {
+    const next = debts.filter(d => d.id !== id);
+    setDebts(next);
+    await DB.patch({ debts: next });
+  };
+
+  const addAccount = async (acc) => {
+    const next = [...accounts, acc];
+    setAccounts(next);
+    await DB.patch({ accounts: next });
+  };
+
+  const updateUserName = async (name) => {
+    setUserName(name);
+    await DB.patch({ userName: name });
   };
 
   const updateBudgetLimit = async (id, newLimit) => {
@@ -98,6 +168,8 @@ function App() {
     totalBalance, monthIncome, monthExpense,
     monthBudgetLimit, monthBudgetSpent, catShare,
     addTx, updateBudgetLimit, markAllNotifsRead,
+    addTransfer, deleteTx, addBudget, addDebt, markDebtDone, addAccount,
+    updateUserName, userName,
   };
 
   // ─── Routing ────────────────────────────────────────────────
@@ -108,8 +180,12 @@ function App() {
 
   const onSaveTx = (t) => {
     setShowAdd(false);
-    const cat = catById(t.cat);
-    setToast(`Tercatat: ${cat.icon} ${cat.name} ${fmtIDR(t.amount, { sign: true, compact: true })}`);
+    if (t.via === 'transfer') {
+      setToast('Transfer berhasil dicatat');
+    } else {
+      const cat = catById(t.cat);
+      setToast(`Tercatat: ${cat.icon} ${cat.name} ${fmtIDR(t.amount, { sign: true, compact: true })}`);
+    }
   };
 
   // ─── Loading screen ─────────────────────────────────────────

@@ -1,0 +1,17 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "PANDUAN-DEPLOY.md",
+      "LANGKAH-SELANJUTNYA.md",
+      "claude.md",
+      ".git/**",
+      "node_modules/**"
+    ]
+  }
+}

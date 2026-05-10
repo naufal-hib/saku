@@ -4,18 +4,21 @@ const { useState: uS2, useEffect: uE2, useRef: uR2 } = React;
 
 // ─── MORE MENU ───────────────────────────────────────────────
 function ScreenMore({ goto }) {
-  const { accounts, debts, notifs, totalBalance } = React.useContext(DataCtx);
+  const { accounts, debts, notifs, totalBalance, userName, updateUserName } = React.useContext(DataCtx);
+  const [showEditName, setShowEditName] = uS2(false);
+  const [nameInput, setNameInput] = uS2('');
+
   const items = [
     { id: 'accounts', label: 'Akun Keuangan',     sub: `${accounts.length} akun · ${fmtIDR(totalBalance, { compact: true })}`, icon: 'wallet', color: C.sky,   soft: C.skySoft },
     { id: 'cats',     label: 'Kategori',           sub: `${CATEGORIES.length} kategori`,                                         icon: 'tag',    color: C.pink,  soft: C.pinkSoft },
     { id: 'debt',     label: 'Utang & Piutang',    sub: `${debts.filter(d=>d.kind==='piutang').length} piutang · ${debts.filter(d=>d.kind==='utang').length} utang`, icon: 'shield', color: C.amber, soft: C.amberSoft },
     { id: 'notif',    label: 'Notifikasi',         sub: `${notifs.filter(n=>!n.read).length} belum dibaca`,                      icon: 'bell',   color: C.coral, soft: C.coralSoft },
-    { id: 'wa',       label: 'WhatsApp Bot',       sub: 'Aktif · +62 812-3456-7890',                                             icon: 'wa',     color: '#1A7A3D', soft: '#DCF7E5' },
+    { id: 'wa',       label: 'WhatsApp Bot',       sub: 'Fitur backend · belum aktif',                                           icon: 'wa',     color: '#1A7A3D', soft: '#DCF7E5' },
     { id: 'insights', label: 'Laporan & Insights', sub: 'Analisis bulan ini',                                                    icon: 'pie',    color: C.primary, soft: C.primarySoft },
   ];
 
   return (
-    <div style={{ paddingBottom: 110 }}>
+    <div style={{ paddingBottom: 110, position: 'relative' }}>
       <div style={{ padding: '54px 20px 20px' }}>
         <h1 style={{ margin: 0, fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Menu</h1>
         <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600, marginTop: 2 }}>Semua pengaturan dan fitur lainnya</div>
@@ -29,12 +32,12 @@ function ScreenMore({ goto }) {
             background: `linear-gradient(135deg, ${C.primary}, ${C.coral})`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 22,
-          }}>A</div>
+          }}>{userName[0].toUpperCase()}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>Adit</div>
-            <div style={{ fontSize: 12, color: C.inkSoft, fontWeight: 600 }}>adit@email.com · Akun pribadi</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>{userName}</div>
+            <div style={{ fontSize: 12, color: C.inkSoft, fontWeight: 600 }}>Akun pribadi</div>
           </div>
-          <button style={{ width: 36, height: 36, borderRadius: 12, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={() => { setNameInput(userName); setShowEditName(true); }} style={{ width: 36, height: 36, borderRadius: 12, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="settings" size={18} sw={2}/>
           </button>
         </Card>
@@ -63,17 +66,35 @@ function ScreenMore({ goto }) {
       <div style={{ padding: '20px 16px 0', textAlign: 'center', fontSize: 11.5, color: C.inkFaint, fontWeight: 600 }}>
         Saku v1.0 · Dibuat untuk pribadi 💜
       </div>
+
+      {/* Edit name modal */}
+      {showEditName && (
+        <div onClick={() => setShowEditName(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Edit Nama</div>
+            <input value={nameInput} onChange={e => setNameInput(e.target.value)} placeholder="Nama kamu" autoFocus style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 15, fontWeight: 700, fontFamily: 'inherit', marginBottom: 12, outline: 'none', boxSizing: 'border-box' }}/>
+            <button onClick={async () => { if (nameInput.trim()) { await updateUserName(nameInput.trim()); setShowEditName(false); } }} style={{ width: '100%', padding: 14, borderRadius: 14, background: C.ink, color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── AKUN ────────────────────────────────────────────────────
 function ScreenAccounts({ back }) {
-  const { accounts, totalBalance } = React.useContext(DataCtx);
+  const { accounts, totalBalance, addAccount } = React.useContext(DataCtx);
+  const [showAddAcc, setShowAddAcc] = uS2(false);
+  const [newAccName, setNewAccName] = uS2('');
+  const [newAccType, setNewAccType] = uS2('Bank');
+  const [newAccEmoji, setNewAccEmoji] = uS2('🏦');
+  const [newAccBalance, setNewAccBalance] = uS2('');
+
   return (
-    <div style={{ paddingBottom: 110 }}>
+    <div style={{ paddingBottom: 110, position: 'relative' }}>
       <PageHeader title="Akun Keuangan" onBack={back}
-        right={<button style={{ padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+        right={<button onClick={() => setShowAddAcc(true)} style={{ padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon name="plus" size={15} stroke="#fff" sw={2.4}/> Akun
         </button>}/>
 
@@ -93,9 +114,10 @@ function ScreenAccounts({ back }) {
 
       {/* accounts grouped */}
       {[
-        { type: 'Bank',     items: accounts.filter(a => a.type === 'Bank') },
-        { type: 'E-wallet', items: accounts.filter(a => a.type === 'E-wallet') },
-        { type: 'Tunai',    items: accounts.filter(a => a.type === 'Tunai') },
+        { type: 'Bank',      items: accounts.filter(a => a.type === 'Bank') },
+        { type: 'E-wallet',  items: accounts.filter(a => a.type === 'E-wallet') },
+        { type: 'Tunai',     items: accounts.filter(a => a.type === 'Tunai') },
+        { type: 'Investasi', items: accounts.filter(a => a.type === 'Investasi') },
       ].filter(g => g.items.length > 0).map(group => (
         <div key={group.type} style={{ padding: '20px 16px 0' }}>
           <SectionHeading title={group.type}/>
@@ -130,6 +152,45 @@ function ScreenAccounts({ back }) {
           </div>
         </div>
       ))}
+
+      {/* Add Account Modal */}
+      {showAddAcc && (
+        <div onClick={() => setShowAddAcc(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '85%', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Tambah Akun</div>
+
+            {/* Type */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Jenis</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              {ACCOUNT_TYPES.map(t => (
+                <button key={t} onClick={() => setNewAccType(t)} style={{ padding: '8px 16px', borderRadius: 999, background: newAccType === t ? C.ink : '#fff', color: newAccType === t ? '#fff' : C.ink, fontWeight: 700, fontSize: 13 }}>{t}</button>
+              ))}
+            </div>
+
+            {/* Emoji */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ikon</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              {ACCOUNT_EMOJIS.map(em => (
+                <button key={em} onClick={() => setNewAccEmoji(em)} style={{ width: 42, height: 42, borderRadius: 12, background: newAccEmoji === em ? C.ink : '#fff', fontSize: 20, border: newAccEmoji === em ? `2px solid ${C.ink}` : '2px solid transparent' }}>{em}</button>
+              ))}
+            </div>
+
+            {/* Name */}
+            <input value={newAccName} onChange={e => setNewAccName(e.target.value)} placeholder="Nama akun (contoh: BCA, Dana)" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', marginBottom: 10, outline: 'none', boxSizing: 'border-box' }}/>
+
+            {/* Balance */}
+            <input type="number" value={newAccBalance} onChange={e => setNewAccBalance(e.target.value)} placeholder="Saldo awal (Rp)" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', marginBottom: 16, outline: 'none', boxSizing: 'border-box' }}/>
+
+            <button onClick={async () => {
+              if (!newAccName.trim()) return;
+              const bal = parseInt(newAccBalance, 10) || 0;
+              await addAccount({ id: 'acc_' + Date.now(), name: newAccName.trim(), type: newAccType, emoji: newAccEmoji, balance: bal, color: '#6B6478' });
+              setNewAccName(''); setNewAccBalance(''); setShowAddAcc(false);
+            }} disabled={!newAccName.trim()} style={{ width: '100%', padding: 14, borderRadius: 14, background: newAccName.trim() ? C.ink : '#D8D2C5', color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan Akun</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -210,9 +271,14 @@ function ScreenCategories({ back }) {
 
 // ─── UTANG / PIUTANG ─────────────────────────────────────────
 function ScreenDebt({ back }) {
-  const { debts } = React.useContext(DataCtx);
+  const { debts, addDebt, markDebtDone } = React.useContext(DataCtx);
   const [tab, setTab] = uS2('piutang');
   const [showAdd, setShowAdd] = uS2(false);
+  const [formName, setFormName] = uS2('');
+  const [formAmount, setFormAmount] = uS2('');
+  const [formNote, setFormNote] = uS2('');
+  const [formDue, setFormDue] = uS2('');
+
   const items = debts.filter(d => d.kind === tab);
   const totalP = debts.filter(d => d.kind === 'piutang').reduce((s,d)=>s+d.amount,0);
   const totalU = debts.filter(d => d.kind === 'utang').reduce((s,d)=>s+d.amount,0);
@@ -266,6 +332,9 @@ function ScreenDebt({ back }) {
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeading title={tab === 'piutang' ? 'Yang berhutang ke saya' : 'Yang saya pinjam'}/>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {items.length === 0 && (
+            <Card><div style={{ textAlign: 'center', color: C.inkSoft, padding: '20px 0', fontSize: 13 }}>Belum ada {tab} aktif.</div></Card>
+          )}
           {items.map(d => {
             const dd = dayDiff(d.dueDate);
             const overdue = dd < 0;
@@ -294,11 +363,13 @@ function ScreenDebt({ back }) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', borderTop: `1px solid ${C.lineSoft}`, fontSize: 12, fontWeight: 700 }}>
-                  <button style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <button onClick={() => {
+                    window.open(`https://wa.me/?text=${encodeURIComponent(`Hei ${d.who}, mengingatkan ${tab === 'piutang' ? 'piutang' : 'utang'} sebesar ${fmtIDR(d.amount)} (${d.note}). Terima kasih 🙏`)}`);
+                  }} style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     <Icon name="wa" size={14} stroke="#1A7A3D"/> <span style={{ color: '#1A7A3D' }}>Ingatkan</span>
                   </button>
                   <div style={{ width: 1, background: C.lineSoft }}/>
-                  <button style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                  <button onClick={async () => { await markDebtDone(d.id); }} style={{ flex: 1, padding: '10px 0', color: C.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     <Icon name="check" size={14} sw={2.4}/> Lunas
                   </button>
                 </div>
@@ -314,17 +385,33 @@ function ScreenDebt({ back }) {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
             <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em', marginBottom: 14 }}>Catat {tab}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input placeholder="Nama orang" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }}/>
-              <input placeholder="Jumlah (Rp)" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }}/>
-              <input placeholder="Keterangan" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }}/>
-              <input placeholder="Tenggat (DD/MM/YYYY)" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }}/>
+              <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nama orang" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', outline: 'none' }}/>
+              <input type="number" value={formAmount} onChange={e => setFormAmount(e.target.value)} placeholder="Jumlah (Rp)" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', outline: 'none' }}/>
+              <input value={formNote} onChange={e => setFormNote(e.target.value)} placeholder="Keterangan" style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', outline: 'none' }}/>
+              <input type="date" value={formDue} onChange={e => setFormDue(e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', outline: 'none' }}/>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 14, background: '#fff' }}>
                 <span style={{ width: 22, height: 22, borderRadius: 6, background: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="check" size={14} stroke="#fff" sw={3}/>
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>Aktifkan reminder via WhatsApp</span>
               </label>
-              <button onClick={() => setShowAdd(false)} style={{ marginTop: 6, padding: 16, borderRadius: 16, background: C.ink, color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan</button>
+              <button onClick={async () => {
+                if (!formName.trim() || !formAmount) return;
+                const avatarStr = formName.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+                await addDebt({
+                  id: 'd' + Date.now(),
+                  kind: tab,
+                  who: formName.trim(),
+                  amount: parseInt(formAmount, 10),
+                  note: formNote,
+                  dueDate: formDue || new Date(Date.now() + 7*24*60*60*1000).toISOString().slice(0,10),
+                  createdAt: new Date().toISOString().slice(0,10),
+                  avatar: avatarStr,
+                  color: C.primary,
+                });
+                setFormName(''); setFormAmount(''); setFormNote(''); setFormDue('');
+                setShowAdd(false);
+              }} style={{ marginTop: 6, padding: 16, borderRadius: 16, background: C.ink, color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan</button>
             </div>
           </div>
         </div>
@@ -392,7 +479,6 @@ function ScreenNotif({ back }) {
 // ─── WHATSAPP BOT ────────────────────────────────────────────
 function ScreenWA({ back }) {
   const { waLog, accounts } = React.useContext(DataCtx);
-  const [connected, setConnected] = uS2(true);
   const [autoCategorize, setAutoCategorize] = uS2(true);
   const [confirmFirst, setConfirmFirst] = uS2(false);
   const [dailyDigest, setDailyDigest] = uS2(true);
@@ -401,12 +487,12 @@ function ScreenWA({ back }) {
     <div style={{ paddingBottom: 110 }}>
       <PageHeader title="WhatsApp Bot" onBack={back}/>
 
-      {/* Status hero */}
+      {/* Status hero — informational, not connected */}
       <div style={{ padding: '0 16px' }}>
         <Card padding={0} style={{
-          background: connected ? `linear-gradient(135deg, #1A7A3D 0%, #25D366 100%)` : `linear-gradient(135deg, #6B6478, #A8A2B5)`,
+          background: `linear-gradient(135deg, ${C.amber} 0%, ${C.amberInk} 100%)`,
           color: '#fff', overflow: 'hidden', position: 'relative',
-          boxShadow: connected ? '0 12px 28px rgba(37,211,102,0.35)' : 'none',
+          boxShadow: '0 12px 28px rgba(255,179,71,0.35)',
         }}>
           <div style={{ position: 'absolute', top: -40, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }}/>
           <div style={{ position: 'relative', padding: 22 }}>
@@ -415,23 +501,18 @@ function ScreenWA({ back }) {
                 <Icon name="wa" size={24} stroke="#fff"/>
               </div>
               <div>
-                <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18 }}>{connected ? 'Bot Aktif' : 'Belum Tersambung'}</div>
-                <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: connected ? C.lime : C.coral, animation: 'saku-pulse-dot 1.6s infinite' }}/>
-                  {connected ? '+62 812-3456-7890' : 'Tap untuk hubungkan'}
-                </div>
+                <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18 }}>WhatsApp Bot</div>
+                <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Fitur ini memerlukan backend terpisah</div>
               </div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.92, lineHeight: 1.5 }}>
-              {connected
-                ? 'Kirim chat bebas — AI bakal catat otomatis ke kategori & akun yang pas.'
-                : 'Hubungkan nomor WA buat catat transaksi sambil chatting.'}
+            <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.95, lineHeight: 1.5, marginBottom: 14 }}>
+              Hubungkan dengan backend server untuk mencatat transaksi langsung dari chat WhatsApp.
             </div>
-            <button onClick={() => setConnected(!connected)} style={{
-              marginTop: 14, padding: '10px 16px', borderRadius: 999,
-              background: '#fff', color: connected ? '#1A7A3D' : C.ink,
+            <button onClick={() => window.open('https://github.com/whatsapp-web/baileys', '_blank')} style={{
+              padding: '10px 16px', borderRadius: 999,
+              background: '#fff', color: C.amberInk,
               fontSize: 13, fontWeight: 700,
-            }}>{connected ? 'Lihat detail' : 'Hubungkan WhatsApp'}</button>
+            }}>Pelajari caranya</button>
           </div>
         </Card>
       </div>
@@ -469,33 +550,38 @@ function ScreenWA({ back }) {
       {/* Toggles */}
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeading title="Pengaturan bot"/>
-        <Card padding={6}>
-          {[
-            { key: 'auto',    state: autoCategorize, set: setAutoCategorize, label: 'Auto-kategori AI', sub: 'Tebak kategori dari teks' },
-            { key: 'confirm', state: confirmFirst,   set: setConfirmFirst,   label: 'Konfirmasi dulu',  sub: 'Tunggu balasan "ya" sebelum simpan' },
-            { key: 'digest',  state: dailyDigest,    set: setDailyDigest,    label: 'Ringkasan harian', sub: 'Kirim laporan jam 21:00 tiap hari' },
-          ].map((t, i) => (
-            <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{t.label}</div>
-                <div style={{ fontSize: 12, color: C.inkSoft, fontWeight: 500 }}>{t.sub}</div>
+        <Card padding={0} style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px', background: C.amberSoft, borderBottom: `1px solid ${C.line}` }}>
+            <div style={{ fontSize: 11.5, color: C.amberInk, fontWeight: 700 }}>Tersedia saat backend aktif</div>
+          </div>
+          <div style={{ padding: '0 6px' }}>
+            {[
+              { key: 'auto',    state: autoCategorize, set: setAutoCategorize, label: 'Auto-kategori AI', sub: 'Tebak kategori dari teks' },
+              { key: 'confirm', state: confirmFirst,   set: setConfirmFirst,   label: 'Konfirmasi dulu',  sub: 'Tunggu balasan "ya" sebelum simpan' },
+              { key: 'digest',  state: dailyDigest,    set: setDailyDigest,    label: 'Ringkasan harian', sub: 'Kirim laporan jam 21:00 tiap hari' },
+            ].map((t, i) => (
+              <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{t.label}</div>
+                  <div style={{ fontSize: 12, color: C.inkSoft, fontWeight: 500 }}>{t.sub}</div>
+                </div>
+                <button onClick={() => t.set(!t.state)} style={{
+                  width: 48, height: 28, borderRadius: 999, padding: 3,
+                  background: t.state ? C.primary : '#D8D2C5',
+                  display: 'flex', alignItems: 'center', justifyContent: t.state ? 'flex-end' : 'flex-start',
+                  transition: 'background 0.2s',
+                }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 999, background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}/>
+                </button>
               </div>
-              <button onClick={() => t.set(!t.state)} style={{
-                width: 48, height: 28, borderRadius: 999, padding: 3,
-                background: t.state ? C.primary : '#D8D2C5',
-                display: 'flex', alignItems: 'center', justifyContent: t.state ? 'flex-end' : 'flex-start',
-                transition: 'background 0.2s',
-              }}>
-                <div style={{ width: 22, height: 22, borderRadius: 999, background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}/>
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </Card>
       </div>
 
       {/* Activity log */}
       <div style={{ padding: '20px 16px 0' }}>
-        <SectionHeading title="Aktivitas terakhir"/>
+        <SectionHeading title="Contoh log"/>
         <Card padding={6}>
           {waLog.map((w, i) => (
             <div key={w.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 12px', borderTop: i === 0 ? 'none' : `1px solid ${C.lineSoft}` }}>
