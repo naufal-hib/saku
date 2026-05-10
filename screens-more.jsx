@@ -84,7 +84,7 @@ function ScreenMore({ goto }) {
 
 // ─── AKUN ────────────────────────────────────────────────────
 function ScreenAccounts({ back, goto, openAdd }) {
-  const { accounts, totalBalance, addAccount, tx } = React.useContext(DataCtx);
+  const { accounts, totalBalance, addAccount, updateAccount, tx } = React.useContext(DataCtx);
   const curMonth = new Date().toISOString().slice(0, 7);
   const lastMonth = (() => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,7); })();
   const thisMonthNet = tx.filter(t => t.date && t.date.startsWith(curMonth) && t.via !== 'transfer').reduce((s,t) => s + t.amount, 0);
@@ -94,6 +94,13 @@ function ScreenAccounts({ back, goto, openAdd }) {
   const [newAccType, setNewAccType] = uS2('Bank');
   const [newAccEmoji, setNewAccEmoji] = uS2('🏦');
   const [newAccBalance, setNewAccBalance] = uS2('');
+  const [editingAccId, setEditingAccId] = uS2(null);
+  const [editAccForm, setEditAccForm] = uS2({ name:'', emoji:'🏦', type:'Bank', balance:'' });
+
+  const openEditAcc = (a) => {
+    setEditingAccId(a.id);
+    setEditAccForm({ name: a.name, emoji: a.emoji, type: a.type, balance: String(a.balance) });
+  };
 
   return (
     <div style={{ paddingBottom: 110, position: 'relative' }}>
@@ -140,7 +147,7 @@ function ScreenAccounts({ back, goto, openAdd }) {
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{a.name} {a.last4 && <span style={{ color: C.inkFaint, fontWeight: 600, fontSize: 12 }}>•••• {a.last4}</span>}</div>
                     <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 18, marginTop: 2, letterSpacing: '-0.02em' }}>{fmtIDR(a.balance)}</div>
                   </div>
-                  <button style={{ width: 32, height: 32, borderRadius: 10, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button onClick={() => openEditAcc(a)} style={{ width: 32, height: 32, borderRadius: 10, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name="more" size={18} sw={2}/>
                   </button>
                 </div>
@@ -197,17 +204,64 @@ function ScreenAccounts({ back, goto, openAdd }) {
           </div>
         </div>
       )}
+
+      {/* Edit Account Modal */}
+      {editingAccId && (
+        <div onClick={() => setEditingAccId(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '85%', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Edit Akun</div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Jenis</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              {ACCOUNT_TYPES.map(t => (
+                <button key={t} onClick={() => setEditAccForm(f => ({ ...f, type: t }))} style={{ padding: '8px 16px', borderRadius: 999, background: editAccForm.type === t ? C.ink : '#fff', color: editAccForm.type === t ? '#fff' : C.ink, fontWeight: 700, fontSize: 13 }}>{t}</button>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ikon</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              {ACCOUNT_EMOJIS.map(em => (
+                <button key={em} onClick={() => setEditAccForm(f => ({ ...f, emoji: em }))} style={{ width: 42, height: 42, borderRadius: 12, background: editAccForm.emoji === em ? C.ink : '#fff', fontSize: 20, border: editAccForm.emoji === em ? `2px solid ${C.ink}` : '2px solid transparent' }}>{em}</button>
+              ))}
+            </div>
+
+            <input value={editAccForm.name} onChange={e => setEditAccForm(f => ({ ...f, name: e.target.value }))} placeholder="Nama akun" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', marginBottom: 10, outline: 'none', boxSizing: 'border-box' }}/>
+            <input type="number" value={editAccForm.balance} onChange={e => setEditAccForm(f => ({ ...f, balance: e.target.value }))} placeholder="Saldo (Rp)" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', marginBottom: 16, outline: 'none', boxSizing: 'border-box' }}/>
+
+            <button onClick={async () => {
+              if (!editAccForm.name.trim()) return;
+              await updateAccount(editingAccId, { name: editAccForm.name.trim(), emoji: editAccForm.emoji, type: editAccForm.type, balance: parseInt(editAccForm.balance, 10) || 0 });
+              setEditingAccId(null);
+            }} style={{ width: '100%', padding: 14, borderRadius: 14, background: C.ink, color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan Perubahan</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── KATEGORI (drag-drop) ────────────────────────────────────
+const CAT_COLORS = [C.primary, C.coral, C.sky, C.lime, C.amber, C.pink, '#8B5CF6', '#059669', '#DC2626', '#0EA5E9'];
+const CAT_ICONS = ['🍜','🏠','🚗','🎮','💊','📚','✈️','👗','💻','🎵','☕','🍕','🐾','💰','🎁','🏃','🛒','💡','📱','🎯'];
+
 function ScreenCategories({ back }) {
-  const { tx } = React.useContext(DataCtx);
-  const [cats, setCats] = uS2(CATEGORIES);
+  const { tx, catMods, customCats, addCategory, updateCategory } = React.useContext(DataCtx);
+  const allCats = [
+    ...CATEGORIES.filter(c => c.id !== 'lainnya').map(c => ({ ...c, ...(catMods[c.id]||{}) })),
+    ...customCats.map(c => ({ ...c, ...(catMods[c.id]||{}) })),
+    { ...CATEGORIES.find(c=>c.id==='lainnya'), ...(catMods['lainnya']||{}) },
+  ];
+  const [cats, setCats] = uS2(allCats);
+  uE2(() => { setCats([ ...CATEGORIES.filter(c=>c.id!=='lainnya').map(c=>({...c,...(catMods[c.id]||{})})), ...customCats.map(c=>({...c,...(catMods[c.id]||{})})), {...CATEGORIES.find(c=>c.id==='lainnya'),...(catMods['lainnya']||{})} ]); }, [catMods, customCats]);
   const [draggingId, setDraggingId] = uS2(null);
   const [overId, setOverId] = uS2(null);
   const curMonth = new Date().toISOString().slice(0, 7);
+  const [showAddCat, setShowAddCat] = uS2(false);
+  const [editingCatId, setEditingCatId] = uS2(null);
+  const [catFormName, setCatFormName] = uS2('');
+  const [catFormIcon, setCatFormIcon] = uS2('🍜');
+  const [catFormColor, setCatFormColor] = uS2(C.primary);
 
   const onDragStart = (id, e) => { setDraggingId(id); e.dataTransfer.effectAllowed = 'move'; };
   const onDragOver = (id, e) => { e.preventDefault(); setOverId(id); };
@@ -226,7 +280,7 @@ function ScreenCategories({ back }) {
   return (
     <div style={{ paddingBottom: 110 }}>
       <PageHeader title="Kategori" onBack={back}
-        right={<button style={{ padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+        right={<button onClick={() => { setCatFormName(''); setCatFormIcon('🍜'); setCatFormColor(C.primary); setShowAddCat(true); }} style={{ padding: '8px 14px 8px 12px', borderRadius: 999, background: C.ink, color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon name="plus" size={15} stroke="#fff" sw={2.4}/> Baru
         </button>}/>
 
@@ -264,13 +318,71 @@ function ScreenCategories({ back }) {
                   {tx.filter(t => t.cat === c.id && t.date && t.date.startsWith(curMonth)).length} transaksi bulan ini
                 </div>
               </div>
-              <button style={{ width: 30, height: 30, borderRadius: 10, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => { setEditingCatId(c.id); setCatFormName(c.name); setCatFormIcon(c.icon); setCatFormColor(c.color); }} style={{ width: 30, height: 30, borderRadius: 10, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="edit" size={15} sw={2}/>
               </button>
             </div>
           ))}
         </Card>
       </div>
+
+      {/* Add Category Modal */}
+      {showAddCat && (
+        <div onClick={() => setShowAddCat(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '85%', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Kategori Baru</div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ikon</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {CAT_ICONS.map(em => (
+                <button key={em} onClick={() => setCatFormIcon(em)} style={{ width: 42, height: 42, borderRadius: 12, background: catFormIcon === em ? C.ink : '#fff', fontSize: 20, border: catFormIcon === em ? `2px solid ${C.ink}` : '2px solid transparent' }}>{em}</button>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Warna</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              {CAT_COLORS.map(col => (
+                <button key={col} onClick={() => setCatFormColor(col)} style={{ width: 32, height: 32, borderRadius: 10, background: col, border: catFormColor === col ? `3px solid ${C.ink}` : '3px solid transparent' }}/>
+              ))}
+            </div>
+
+            <input value={catFormName} onChange={e => setCatFormName(e.target.value)} placeholder="Nama kategori" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', marginBottom: 16, outline: 'none', boxSizing: 'border-box' }}/>
+
+            <button onClick={async () => {
+              if (!catFormName.trim()) return;
+              const id = 'cat_' + Date.now();
+              await addCategory({ id, name: catFormName.trim(), icon: catFormIcon, color: catFormColor, soft: catFormColor + '22' });
+              setShowAddCat(false);
+            }} disabled={!catFormName.trim()} style={{ width: '100%', padding: 14, borderRadius: 14, background: catFormName.trim() ? C.ink : '#D8D2C5', color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan Kategori</button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Category Modal */}
+      {editingCatId && (
+        <div onClick={() => setEditingCatId(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)', maxHeight: '85%', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Edit Kategori</div>
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ikon</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {CAT_ICONS.map(em => (
+                <button key={em} onClick={() => setCatFormIcon(em)} style={{ width: 42, height: 42, borderRadius: 12, background: catFormIcon === em ? C.ink : '#fff', fontSize: 20, border: catFormIcon === em ? `2px solid ${C.ink}` : '2px solid transparent' }}>{em}</button>
+              ))}
+            </div>
+
+            <input value={catFormName} onChange={e => setCatFormName(e.target.value)} placeholder="Nama kategori" style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', marginBottom: 16, outline: 'none', boxSizing: 'border-box' }}/>
+
+            <button onClick={async () => {
+              if (!catFormName.trim()) return;
+              await updateCategory(editingCatId, { name: catFormName.trim(), icon: catFormIcon });
+              setEditingCatId(null);
+            }} style={{ width: '100%', padding: 14, borderRadius: 14, background: C.ink, color: '#fff', fontWeight: 700, fontSize: 15 }}>Simpan Perubahan</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -618,8 +730,23 @@ function ScreenWA({ back }) {
 
 // ─── INSIGHTS ────────────────────────────────────────────────
 function ScreenInsights({ back }) {
-  const { catShare, monthIncome, monthExpense, tx, accounts } = React.useContext(DataCtx);
+  const { tx, accounts } = React.useContext(DataCtx);
   const curMonth = new Date().toISOString().slice(0, 7);
+  const [selectedMonth, setSelectedMonth] = uS2(curMonth);
+  const [showMonthPicker, setShowMonthPicker] = uS2(false);
+
+  const last12 = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    return d.toISOString().slice(0, 7);
+  });
+
+  const mTxAll = tx.filter(t => t.date && t.date.startsWith(selectedMonth) && t.via !== 'transfer');
+  const monthIncome = mTxAll.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const monthExpense = mTxAll.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const catShareMap = {};
+  mTxAll.filter(t => t.amount < 0).forEach(t => { catShareMap[t.cat] = (catShareMap[t.cat]||0) + Math.abs(t.amount); });
+  const catShare = Object.entries(catShareMap).map(([cat, amount]) => ({ cat, amount })).sort((a,b) => b.amount - a.amount);
+
   const total = catShare.reduce((s,c)=>s+c.amount,0);
   const cats5 = catShare.slice(0, 5);
 
@@ -642,7 +769,7 @@ function ScreenInsights({ back }) {
       m: mNames[parseInt(ym.slice(5,7)) - 1],
       income:  mTxs.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0),
       expense: mTxs.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0),
-      isCur: ym === curMonth,
+      isCur: ym === selectedMonth,
     };
   });
   const maxBar = Math.max(...monthBars.map(b => Math.max(b.income, b.expense)), 1);
@@ -651,7 +778,7 @@ function ScreenInsights({ back }) {
   const lastMonthExpense = tx.filter(t => t.date && t.date.startsWith(lastMonthYm) && t.amount < 0 && t.via !== 'transfer').reduce((s,t) => s + Math.abs(t.amount), 0);
   const expChangePct = lastMonthExpense > 0 ? Math.round((monthExpense - lastMonthExpense) / lastMonthExpense * 100) : 0;
   const savingRate = monthIncome > 0 ? Math.round((monthIncome - monthExpense) / monthIncome * 100) : 0;
-  const subTotal = tx.filter(t => t.date && t.date.startsWith(curMonth) && t.cat === 'sub' && t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const subTotal = tx.filter(t => t.date && t.date.startsWith(selectedMonth) && t.cat === 'sub' && t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
 
   const insights = [];
   if (catShare.length > 0) {
@@ -694,8 +821,8 @@ function ScreenInsights({ back }) {
   return (
     <div style={{ paddingBottom: 110 }}>
       <PageHeader title="Insights" onBack={back}
-        right={<button style={{ padding: '8px 12px', borderRadius: 999, background: '#fff', color: C.ink, fontSize: 12, fontWeight: 700, boxShadow: '0 1px 0 rgba(26,22,37,0.04)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} <Icon name="chevron-d" size={13} sw={2.2}/>
+        right={<button onClick={() => setShowMonthPicker(true)} style={{ padding: '8px 12px', borderRadius: 999, background: '#fff', color: C.ink, fontSize: 12, fontWeight: 700, boxShadow: '0 1px 0 rgba(26,22,37,0.04)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          {new Date(selectedMonth + '-02').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} <Icon name="chevron-d" size={13} sw={2.2}/>
         </button>}/>
 
       {/* Summary */}
@@ -706,7 +833,7 @@ function ScreenInsights({ back }) {
             {fmtIDR(monthIncome, { compact: true })}
           </div>
           <div style={{ fontSize: 11, color: C.limeInk, fontWeight: 700, opacity: 0.7 }}>
-            {tx.filter(t=>t.amount>0&&t.via!=='transfer'&&t.date&&t.date.startsWith(curMonth)).length} sumber
+            {tx.filter(t=>t.amount>0&&t.via!=='transfer'&&t.date&&t.date.startsWith(selectedMonth)).length} sumber
           </div>
         </Card>
         <Card padding={14} style={{ background: C.coralSoft }}>
@@ -715,7 +842,7 @@ function ScreenInsights({ back }) {
             {fmtIDR(monthExpense, { compact: true })}
           </div>
           <div style={{ fontSize: 11, color: C.coralInk, fontWeight: 700, opacity: 0.7 }}>
-            {tx.filter(t=>t.amount<0&&t.via!=='transfer'&&t.date&&t.date.startsWith(curMonth)).length} transaksi
+            {tx.filter(t=>t.amount<0&&t.via!=='transfer'&&t.date&&t.date.startsWith(selectedMonth)).length} transaksi
           </div>
         </Card>
       </div>
@@ -809,6 +936,28 @@ function ScreenInsights({ back }) {
           ))}
         </div>
       </div>
+
+      {/* Month picker modal */}
+      {showMonthPicker && (
+        <div onClick={() => setShowMonthPicker(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,37,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', animation: 'saku-fade-in 0.2s' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.bg, borderRadius: '28px 28px 0 0', padding: '20px 16px 32px', animation: 'saku-slide-up 0.3s cubic-bezier(0.2,0.8,0.2,1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: '#D8D2C5' }}/></div>
+            <div style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: 20, marginBottom: 16 }}>Pilih Bulan</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {last12.map(ym => (
+                <button key={ym} onClick={() => { setSelectedMonth(ym); setShowMonthPicker(false); }} style={{
+                  padding: '12px 16px', borderRadius: 14, textAlign: 'left', fontWeight: 700, fontSize: 14,
+                  background: selectedMonth === ym ? C.ink : '#fff', color: selectedMonth === ym ? '#fff' : C.ink,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <span>{new Date(ym + '-02').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</span>
+                  {ym === curMonth && <span style={{ fontSize: 11, fontWeight: 700, color: selectedMonth === ym ? 'rgba(255,255,255,0.7)' : C.inkSoft }}>Bulan ini</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

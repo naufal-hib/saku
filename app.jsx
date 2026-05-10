@@ -14,6 +14,8 @@ function App() {
   const [notifs, setNotifs] = uSA([]);
   const [waLog, setWaLog] = uSA([]);
   const [userName, setUserName] = uSA('Pengguna');
+  const [catMods, setCatMods] = uSA({});
+  const [customCats, setCustomCats] = uSA([]);
 
   // ─── UI state ───────────────────────────────────────────────
   const [route, setRoute] = uSA('home');
@@ -33,6 +35,8 @@ function App() {
         setNotifs(data.notifs || []);
         setWaLog(data.waLog || []);
         setUserName(data.userName || 'Pengguna');
+        setCatMods(data.catMods || {});
+        setCustomCats(data.customCats || []);
       } else {
         // Pertama kali pakai — isi dengan seed data
         const seed = {
@@ -48,6 +52,16 @@ function App() {
       setLoading(false);
     }).catch(() => { setLoading(false); setDbError(true); });
   }, []);
+
+  // ─── Sync catById ke custom cats & mods ────────────────────
+  uEA(() => {
+    window.catById = (id) => {
+      const custom = customCats.find(c => c.id === id);
+      const base = custom || CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+      const mod = catMods[id] || {};
+      return { ...base, ...mod };
+    };
+  }, [catMods, customCats]);
 
   // ─── Derived values (dihitung dari state) ──────────────────
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
@@ -162,6 +176,30 @@ function App() {
     await DB.patch({ notifs: updated });
   };
 
+  const updateAccount = async (id, updates) => {
+    const next = accounts.map(a => a.id === id ? { ...a, ...updates } : a);
+    setAccounts(next);
+    await DB.patch({ accounts: next });
+  };
+
+  const addCategory = async (cat) => {
+    const next = [...customCats, cat];
+    setCustomCats(next);
+    await DB.patch({ customCats: next });
+  };
+
+  const updateCategory = async (id, updates) => {
+    if (customCats.some(c => c.id === id)) {
+      const next = customCats.map(c => c.id === id ? { ...c, ...updates } : c);
+      setCustomCats(next);
+      await DB.patch({ customCats: next });
+    } else {
+      const next = { ...catMods, [id]: { ...(catMods[id] || {}), ...updates } };
+      setCatMods(next);
+      await DB.patch({ catMods: next });
+    }
+  };
+
   // ─── Context value ──────────────────────────────────────────
   const ctxValue = {
     tx, accounts, budgets, debts, notifs, waLog,
@@ -170,6 +208,7 @@ function App() {
     addTx, updateBudgetLimit, markAllNotifsRead,
     addTransfer, deleteTx, addBudget, addDebt, markDebtDone, addAccount,
     updateUserName, userName,
+    catMods, customCats, addCategory, updateCategory, updateAccount,
   };
 
   // ─── Routing ────────────────────────────────────────────────
