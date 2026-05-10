@@ -10,12 +10,13 @@
 // Ganti semua nilai "GANTI_..." dengan nilai asli dari Firebase Console kamu:
 
 const FIREBASE_CONFIG = {
-  apiKey:            "GANTI_DENGAN_API_KEY",
-  authDomain:        "GANTI_DENGAN_PROJECT_ID.firebaseapp.com",
-  projectId:         "GANTI_DENGAN_PROJECT_ID",
-  storageBucket:     "GANTI_DENGAN_PROJECT_ID.appspot.com",
-  messagingSenderId: "GANTI_DENGAN_MESSAGING_SENDER_ID",
-  appId:             "GANTI_DENGAN_APP_ID",
+  apiKey:            "AIzaSyCFfCqEL6xYP4zDpKZwvBlpmAPsyjIRYMI",
+  authDomain:        "saku-budget-40c7d.firebaseapp.com",
+  projectId:         "saku-budget-40c7d",
+  storageBucket:     "saku-budget-40c7d.firebasestorage.app",
+  messagingSenderId: "G442721196164",
+  appId:             "1:442721196164:web:9508d01bd1c6b95549cad1",
+  measurementId:     "G-H9SDQNY4N7",
 };
 
 const _isCfg = !FIREBASE_CONFIG.apiKey.includes('GANTI');

@@ -33,12 +33,12 @@ Data transaksi kamu akan disimpan di **Firebase Firestore** — gratis, tersimpa
 3. Setelah project dibuat, klik ikon **`</>`** (Web app) di halaman project
 4. Beri nama app (misal: "saku-web") → klik **Register app**
 5. **Copy seluruh blok `firebaseConfig`** yang muncul
-
+m
 **0A.2 — Isi konfigurasi di `firebase.jsx`**
 
 Buka file `firebase.jsx` dan ganti bagian `FIREBASE_CONFIG`:
 
-```javascript
+```javascrip
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSy...",          // ← paste nilai asli dari Firebase
   authDomain:        "saku-budget.firebaseapp.com",
